@@ -1,0 +1,588 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Data Kepailitan BHP Medan</title></head><body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: layar presentasi gelap; enam adegan berurutan (tab dan tombol panah), panel kaca melayang di atas latar marun. */
+:root {
+  --bg: #eef0f3;
+  --panel: #ffffff;
+  --panel-2: #f6f4f1;
+  --line: #e2ddd5;
+  --fg: #1f2733;
+  --muted: #5d6573;
+  --faint: #e9e6e1;
+  --gold: #a8822f;
+  --gold-2: #8a6a24;
+  --rose: #7a1f2b;
+  --rose-2: #5a1520;
+  --cream: #d8c393;
+  --maroon: #6e1d29;
+  --maroon-2: #4f1520;
+  --tip: #1f2733;
+  --tip-fg: #ffffff;
+  --f-display: "Source Serif 4", Cambria, Georgia, serif;
+  --f-body: "Source Sans 3", Calibri, "Segoe UI", Arial, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; color: var(--fg); font-family: var(--f-body); font-size: 15px; line-height: 1.45; background: var(--bg); display: flex; flex-direction: column; min-height: 100%; }
+.topbar { background: linear-gradient(180deg, var(--maroon), var(--maroon-2)); color: #fff; border-bottom: 3px solid var(--gold); }
+.topbar .in { max-width: 1280px; margin: 0 auto; padding-inline: 24px; padding-block: 12px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: space-between; }
+.org { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.logo { width: 48px; height: 48px; flex: none; object-fit: contain; }
+.seal { width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--gold); display: grid; place-items: center; color: #f3e6c4; font-family: var(--f-display); font-weight: 700; font-size: 13px; flex: none; }
+.org .l1 { font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: #f0dfb6; font-weight: 700; }
+.org .l2 { font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: #e9d6d9; }
+.org .l3 { font-family: var(--f-display); font-size: 18px; font-weight: 700; color: #fff; }
+.event { text-align: right; font-size: 12.5px; color: #f0dfb6; }
+.event b { display: block; color: #fff; font-size: 14px; }
+.botbar { background: var(--maroon-2); color: #e9d6d9; border-top: 3px solid var(--gold); margin-top: 8px; }
+.botbar .in { max-width: 1280px; margin: 0 auto; padding-inline: 24px; padding-block: 10px; display: flex; flex-wrap: wrap; gap: 6px 22px; justify-content: space-between; font-size: 12.5px; }
+.botbar b { color: #f0dfb6; }
+.wrap { flex: 1 0 auto; width: 100%; max-width: 1280px; margin: 0 auto; padding-inline: 24px; padding-block: 18px 16px; display: flex; flex-direction: column; gap: 14px; min-height: 100%; }
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.eyebrow { font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold-2); font-weight: 700; }
+.brand .t { font-family: var(--f-display); font-size: 17px; font-weight: 700; }
+nav { display: flex; flex-wrap: wrap; gap: 4px; background: #fff; padding: 4px; border-radius: 999px; border: 1px solid var(--line); box-shadow: 0 2px 8px rgba(31,39,51,.06); }
+nav button { font: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); background: transparent; border: 0; padding: 7px 12px; border-radius: 999px; cursor: pointer; transition: background .25s, color .25s; }
+nav button[aria-selected="true"] { background: var(--maroon); color: #fff; }
+nav button:hover:not([aria-selected="true"]) { color: var(--fg); background: var(--faint); }
+button:focus-visible, .hit:focus-visible, .chip:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.scene { display: grid; gap: 14px; animation: enter .55s cubic-bezier(.2,.8,.2,1) both; }
+.scene[hidden] { display: none !important; }
+@keyframes enter { from { opacity: .2; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.head h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(26px, 3.4vw, 40px); line-height: 1.08; margin: 0; text-wrap: balance; }
+.head p { margin: 6px 0 0; color: var(--muted); max-width: 78ch; }
+.grid { display: grid; gap: 14px; }
+.g-2 { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); }
+.g-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: 0 10px 28px rgba(31,39,51,.08), 0 1px 2px rgba(31,39,51,.06); min-width: 0; }
+.float { animation: float 8s ease-in-out infinite; }
+.float.b { animation-duration: 10s; animation-delay: -3s; }
+.float.c { animation-duration: 12s; animation-delay: -6s; }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.panel h2 { font-family: var(--f-display); font-size: 18px; font-weight: 700; margin: 0; }
+.panel .sub { color: var(--muted); font-size: 13px; margin: 2px 0 10px; }
+.kpi .big { font-family: var(--f-display); font-weight: 700; font-size: 46px; line-height: 1; color: var(--maroon); font-variant-numeric: tabular-nums; }
+.kpi .lbl { margin-top: 6px; font-size: 14px; }
+.kpi .note { margin-top: 6px; color: var(--muted); font-size: 12.5px; }
+.kpi .bar { height: 6px; border-radius: 6px; background: var(--faint); margin-top: 12px; overflow: hidden; }
+.kpi .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--maroon), var(--gold)); border-radius: 6px; transition: width 1.2s cubic-bezier(.2,.8,.2,1); }
+.thesis { font-family: var(--f-display); font-size: clamp(18px, 2vw, 23px); line-height: 1.35; }
+.thesis b { color: var(--maroon); font-weight: 700; }
+.points { display: grid; gap: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 14px; }
+.point { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; background: var(--panel-2); }
+.point .n { font-family: var(--f-display); color: var(--maroon); font-weight: 700; font-size: 22px; }
+.point .h { font-weight: 700; margin-top: 2px; }
+.point .d { color: var(--muted); font-size: 13px; margin-top: 4px; }
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { fill: var(--fg); font-family: var(--f-body); }
+.chart .ax { fill: var(--muted); font-size: 12px; }
+.chart .gl { stroke: var(--faint); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+.chip { font: inherit; font-size: 12.5px; font-weight: 600; color: var(--muted); border: 1px solid var(--line); background: transparent; padding: 5px 10px; border-radius: 999px; cursor: pointer; }
+.chip[aria-pressed="true"] { color: #fff; background: var(--maroon); border-color: var(--maroon); }
+.hit { cursor: pointer; }
+.dim .mk { opacity: .3; transition: opacity .2s; }
+.dim .on .mk, .dim .mk.on { opacity: 1; }
+.sel .bgrow { fill: rgba(168, 130, 47, .10); }
+.detail .tag { display: inline-block; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #fff; background: var(--maroon); padding: 3px 8px; border-radius: 999px; }
+.detail h3 { font-family: var(--f-display); font-size: 24px; margin: 8px 0 2px; line-height: 1.15; }
+.detail .no { color: var(--muted); font-size: 13px; }
+.kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; margin: 12px 0; font-size: 14px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+.meter { margin: 10px 0 4px; }
+.meter .row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); }
+.meter .track { height: 10px; border-radius: 10px; background: var(--faint); overflow: hidden; margin-top: 4px; position: relative; }
+.meter .fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--maroon), var(--gold)); width: 0; transition: width .9s cubic-bezier(.2,.8,.2,1); }
+.lesson { border-left: 0; background: var(--panel-2); border-radius: 12px; padding: 10px 12px; margin-top: 10px; font-size: 14px; }
+.lesson b { color: var(--gold-2); display: block; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--faint); vertical-align: top; }
+th { color: #fff; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 700; position: sticky; top: 0; background: var(--maroon); }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.bhp td { background: #f7f0de; font-weight: 600; }
+.pill { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 2px 8px; }
+.p-bhp { background: var(--gold); color: #fff; }
+.p-priv { background: #f3e3e5; color: var(--maroon); }
+.p-ok { background: #f3ead4; color: var(--gold-2); }
+.p-no { background: #f3e3e5; color: var(--maroon); }
+.p-wait { background: var(--faint); color: var(--muted); }
+.scroll { overflow: auto; max-height: 360px; border-radius: 10px; }
+input[type="search"] { font: inherit; font-size: 13.5px; color: var(--fg); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; min-width: 0; flex: 1 1 180px; }
+.map { position: relative; }
+.steps { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; counter-reset: s; }
+.step { position: relative; border: 1px solid var(--line); border-radius: 14px; padding: 12px 10px 10px; background: var(--panel-2); min-height: 120px; transition: transform .3s, background .3s, border-color .3s; }
+.step .k { font-family: var(--f-display); color: var(--maroon); font-weight: 700; font-size: 20px; }
+.step .x { font-size: 13px; margin-top: 4px; }
+.step.act { background: #f7f0de; border-color: var(--gold); transform: translateY(-4px); }
+.under { margin-top: 10px; text-align: center; font-size: 13.5px; color: var(--maroon); font-weight: 600; border: 1px dashed var(--line); border-radius: 12px; padding: 8px; }
+.roles { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,.8fr) minmax(0,1fr); gap: 12px; align-items: stretch; }
+.role { border-radius: 16px; padding: 14px 16px; }
+.role.bhp { background: linear-gradient(160deg, var(--maroon), var(--maroon-2)); color: #fff; border: 1px solid var(--maroon); }
+.role.priv { background: var(--panel-2); border: 1px solid var(--line); }
+.role.mid { background: #f7f0de; border: 1px solid var(--gold); display: flex; flex-direction: column; justify-content: center; text-align: center; gap: 8px; }
+.role h3 { font-family: var(--f-display); margin: 0 0 6px; font-size: 20px; }
+.role ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 13.5px; }
+.role .s { color: inherit; opacity: .8; font-size: 12.5px; margin-bottom: 8px; }
+.meet { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.meet button { font: inherit; text-align: left; color: var(--fg); background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px; cursor: pointer; transition: border-color .2s, background .2s, transform .2s; }
+.meet button[aria-pressed="true"] { border-color: var(--maroon); background: #f7eef0; transform: translateY(-3px); }
+.meet .n { font-family: var(--f-display); font-size: 20px; color: var(--maroon); font-weight: 700; }
+.flow { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr); gap: 10px; align-items: stretch; margin-top: 12px; }
+.flow .box { border-radius: 14px; padding: 12px 14px; border: 1px solid var(--line); background: var(--panel-2); font-size: 14px; }
+.flow .box b { display: block; font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--gold-2); margin-bottom: 4px; }
+.flow .box.goal { background: #f7f0de; border-color: var(--gold); }
+.flow .arr { align-self: center; color: var(--gold); font-size: 22px; }
+.goal-card h3 { font-family: var(--f-display); font-size: 20px; margin: 4px 0 8px; }
+.goal-card .q { font-size: 12px; color: var(--gold-2); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.goal-card ul { margin: 0; padding-left: 18px; display: grid; gap: 7px; font-size: 14px; }
+.goal-card .base { margin-top: 12px; font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--faint); padding-top: 8px; }
+.coord { display: flex; flex-wrap: wrap; gap: 8px; }
+.coord span { border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; background: var(--panel-2); }
+.coord span b { color: var(--maroon); }
+#tip { position: fixed; z-index: 20; pointer-events: none; max-width: 320px; background: var(--tip); color: var(--tip-fg); border-radius: 12px; padding: 10px 12px; font-size: 13.5px; box-shadow: 0 16px 36px rgba(0,0,0,.45); opacity: 0; transform: translateY(6px); transition: opacity .15s, transform .15s; }
+#tip.show { opacity: 1; transform: none; }
+#tip b { font-family: var(--f-display); font-size: 15px; display: block; margin-bottom: 3px; }
+#tip .r { display: flex; justify-content: space-between; gap: 14px; font-variant-numeric: tabular-nums; }
+footer { color: var(--muted); font-size: 12px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 18px; margin-top: auto; padding-top: 6px; }
+kbd { font-family: var(--f-body); font-size: 11px; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: var(--fg); }
+.navbtns { display: flex; gap: 6px; }
+.navbtns button { font: inherit; font-size: 13px; color: var(--fg); background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+@media (max-width: 1000px) {
+  .g-2, .g-3, .roles { grid-template-columns: minmax(0, 1fr); }
+  .g-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .points, .meet { grid-template-columns: minmax(0, 1fr); }
+  .flow { grid-template-columns: minmax(0, 1fr); }
+  .flow .arr { transform: rotate(90deg); justify-self: center; }
+}
+@media (max-width: 480px) { .wrap { padding-inline: 16px; } .g-4 { grid-template-columns: minmax(0, 1fr); } .kpi .big { font-size: 38px; } nav button { padding: 6px 9px; font-size: 12.5px; } }
+@media (prefers-reduced-motion: reduce) { .float, .scene { animation: none; } * { transition-duration: 0s !important; } }
+</style>
+
+<div class="topbar"><div class="in">
+  <div class="org">
+    <img class="logo" src="logo-kemenkum.png" alt="Logo Kementerian Hukum" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
+    <div class="seal" hidden aria-hidden="true">BHP</div>
+    <div><div class="l1">Kementerian Hukum Republik Indonesia</div><div class="l2">Kantor Wilayah Sumatera Utara</div><div class="l3">Balai Harta Peninggalan Medan</div></div>
+  </div>
+  <div class="event"><b>RDP Komisi XIII DPR RI</b>RUU tentang Profesi Kurator · 6 Oktober 2026</div>
+</div></div>
+<div class="wrap">
+  <header style="justify-content:center">
+    <nav role="tablist" aria-label="Pilih bagian">
+      <button role="tab" data-s="0" aria-selected="true">Ringkasan</button>
+      <button role="tab" data-s="1" aria-selected="false">Perkara BHP Medan</button>
+      <button role="tab" data-s="2" aria-selected="false">Lama perkara</button>
+      <button role="tab" data-s="3" aria-selected="false">Penunjukan kurator</button>
+      <button role="tab" data-s="4" aria-selected="false">Peta peran</button>
+      <button role="tab" data-s="5" aria-selected="false">Arah RUU</button>
+    </nav>
+  </header>
+
+  <!-- 0 RINGKASAN -->
+  <section class="scene" data-scene="0">
+    <div class="head"><h1>Tumpang tindih BHP dan kurator perseorangan bukan perebutan perkara</h1>
+      <p>Masalahnya ada pada aturan yang belum lengkap dalam tiga keadaan. Data perkara BHP Medan dan seluruh putusan pailit di PN Niaga Medan menunjukkan polanya.</p></div>
+    <div class="grid g-4">
+      <div class="panel kpi float"><div class="big" data-count="9">0</div><div class="lbl">perkara kepailitan sedang ditangani BHP Medan</div><div class="bar"><i data-w="100"></i></div></div>
+      <div class="panel kpi float b"><div class="big" data-count="47.35" data-dec="2" data-pre="Rp" data-suf=" M">0</div><div class="lbl">total tagihan kreditor</div><div class="note">Harta yang sudah dinilai hanya 12% s.d. 40% dari tagihan.</div></div>
+      <div class="panel kpi float c"><div class="big"><span data-count="6">0</span> dari 9</div><div class="lbl">perkara berjalan lebih dari 5 tahun</div><div class="bar"><i data-w="66.7"></i></div></div>
+      <div class="panel kpi float b"><div class="big"><span data-count="2">0</span> dari 16</div><div class="lbl">putusan pailit 2025 s.d. 2026 yang mengangkat BHP Medan</div><div class="note">Keduanya karena diminta pemohon. Pada 2026: 0 dari 7.</div></div>
+    </div>
+    <div class="panel float c">
+      <div class="thesis">Arah jawaban BHP Medan: RUU Profesi Kurator perlu <b>menegaskan peran BHP</b>, <b>menyamakan standar profesi</b>, dan <b>memperjelas pengawasan serta pertanggungjawaban</b>.</div>
+      <div class="points">
+        <div class="point"><div class="n">1</div><div class="h">Tugas bersama</div><div class="d">Pembagian imbalan dan tanggung jawab antara BHP dan kurator perseorangan belum diatur.</div></div>
+        <div class="point"><div class="n">2</div><div class="h">Dua tugas BHP</div><div class="d">Tugas keperdataan BHP berbeda dengan tugasnya sebagai kurator; dasar, pelaksana, dan pertanggungjawabannya perlu dipisah.</div></div>
+        <div class="point"><div class="n">3</div><div class="h">Perkara tertentu</div><div class="d">Debitor tanpa ahli waris atau harta tak terurus belum punya pelaksana pasti; BHP hanya diangkat bila diminta.</div></div>
+      </div>
+    </div>
+    <div class="panel float b"><h2 style="margin-bottom:8px">Istilah singkat</h2>
+      <div class="coord">
+        <span><b>Pailit</b>: keadaan debitor yang oleh pengadilan dinyatakan tidak mampu membayar utang; hartanya disita untuk semua kreditor</span>
+        <span><b>Kurator</b>: pihak yang ditunjuk pengadilan untuk mengurus dan menjual harta pailit, lalu membagikan hasilnya</span>
+        <span><b>BHP</b>: Balai Harta Peninggalan, kantor pemerintah yang dapat menjadi kurator</span>
+        <span><b>Kurator perseorangan</b>: orang perseorangan yang terdaftar sebagai kurator (dalam daftar pertanyaan disebut kurator privat)</span>
+        <span><b>Hakim Pengawas</b>: hakim yang mengawasi kerja kurator</span>
+        <span><b>PKPU</b>: penundaan pembayaran utang untuk merundingkan perdamaian; bila gagal, debitor dapat dinyatakan pailit</span>
+        <span><b>Petitum</b>: isi permintaan pemohon kepada pengadilan, termasuk siapa yang diminta menjadi kurator</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- glossary placed in ringkasan -->
+  <!-- 1 PERKARA -->
+  <section class="scene" data-scene="1" hidden>
+    <div class="head"><h1>Tagihan dan harta pada perkara BHP Medan</h1><p>Sembilan perkara yang sedang ditangani BHP Medan. Pilih batang untuk membuka rincian perkara.</p></div>
+    <div class="grid g-2">
+      <div class="panel float">
+        <div class="tools" role="group" aria-label="Urutkan">
+          <span style="color:var(--muted);font-size:13px;margin-right:4px">Urutkan:</span>
+          <button class="chip" data-sort="tag" aria-pressed="true">Tagihan</button>
+          <button class="chip" data-sort="harta" aria-pressed="false">Harta</button>
+          <button class="chip" data-sort="d" aria-pressed="false">Tahun putusan</button>
+        </div>
+        <svg class="chart" id="cCase" viewBox="0 0 760 430" role="img" aria-label="Tagihan dan harta per perkara"></svg>
+        <div class="legend"><span><i style="background:var(--gold)"></i>Jumlah tagihan (Rp miliar)</span><span><i style="background:var(--rose)"></i>Nilai harta tercatat</span></div>
+      </div>
+      <div class="panel detail float b" id="detail" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- 2 LAMA PERKARA -->
+  <section class="scene" data-scene="2" hidden>
+    <div class="head"><h1>Enam dari sembilan perkara berjalan lebih dari lima tahun</h1><p>Setiap garis dimulai dari tanggal putusan pailit sampai hari ini. Arahkan kursor untuk melihat keadaan terakhir.</p></div>
+    <div class="grid g-2">
+      <div class="panel float"><svg class="chart" id="cGantt" viewBox="0 0 760 440" role="img" aria-label="Lama perkara"></svg>
+        <div class="legend"><span><i style="background:var(--rose)"></i>Lebih dari 5 tahun</span><span><i style="background:var(--gold)"></i>Kurang dari 5 tahun</span></div></div>
+      <div class="grid">
+        <div class="panel kpi float b"><div class="big" id="kMax">0</div><div class="lbl">perkara terlama: Gwe Tjoen</div><div class="note">Debitor meninggal dunia, ahli waris tidak diketahui; ditangani 4 Hakim Pengawas bergantian.</div></div>
+        <div class="panel kpi float c"><div class="big" id="kAvg">0</div><div class="lbl">rata-rata lama perkara</div><div class="note">Hambatan terbesar berada di luar kurator: penetapan insolvensi, sertifikat di kantor pertanahan, dan perkara renvoi.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 PENUNJUKAN -->
+  <section class="scene" data-scene="3" hidden>
+    <div class="head"><h1>BHP diangkat hanya bila diminta pemohon</h1><p>Seluruh perkara pailit dan PKPU di PN Niaga Medan yang teregister 2025 dan 2026 (Sumatera Utara, Aceh, Sumatera Barat, Riau, Kepulauan Riau, Jambi, Bengkulu). Data SIPP per 2 Oktober 2026.</p></div>
+    <div class="grid g-2">
+      <div class="panel float"><h2>Putusan pailit dan kedudukan BHP</h2><p class="sub">Perkara teregister 2025 dibanding 2026</p>
+        <svg class="chart" id="cCmp" viewBox="0 0 760 290" role="img" aria-label="Perbandingan 2025 dan 2026"></svg>
+        <div class="legend"><span><i style="background:var(--cream)"></i>Perkara 2025</span><span><i style="background:var(--gold)"></i>2026 (s.d. 2 Oktober)</span></div></div>
+      <div class="panel float b"><h2>11 permohonan yang meminta BHP</h2><p class="sub">Pilih bagian lingkaran untuk menyaring daftar di bawah</p>
+        <svg class="chart" id="cDonut" viewBox="0 0 300 250" role="img" aria-label="Hasil permohonan yang meminta BHP"></svg>
+        <div class="legend" id="lgDonut"></div></div>
+    </div>
+    <div class="panel float c">
+      <div class="tools">
+        <button class="chip" data-tab="v" aria-pressed="true">16 putusan pailit</button>
+        <button class="chip" data-tab="r" aria-pressed="false">11 permohonan meminta BHP</button>
+        <span style="flex:1"></span>
+        <input type="search" id="q" placeholder="Cari debitor, pemohon, atau kurator" aria-label="Cari">
+      </div>
+      <svg class="chart" id="cTime" viewBox="0 0 760 96" role="img" aria-label="Linimasa putusan"></svg>
+      <div class="scroll"><table id="tbl"></table></div>
+    </div>
+  </section>
+
+  <!-- 4 PETA PERAN -->
+  <section class="scene" data-scene="4" hidden>
+    <div class="head"><h1>Tiga keadaan yang perlu diatur</h1><p>Pilih salah satu keadaan untuk melihat yang terjadi di lapangan dan arah pengaturannya.</p></div>
+    <div class="panel float">
+      <div class="meet" id="meet"></div>
+      <div class="flow" id="flow"></div>
+    </div>
+    <div class="grid">
+      <div class="panel float b"><h2>Alur kerja BHP Medan sebagai kurator</h2><p class="sub">Arahkan kursor ke setiap tahap</p>
+        <div class="steps" id="steps"></div>
+        <div class="under">Seluruh tahap di bawah pengawasan Hakim Pengawas dan dilaporkan secara berkala</div></div>
+      <div class="panel float c"><h2>Pembedaan peran BHP</h2><p class="sub">Sejalan dengan butir 02 Bahan Rapat AHU</p>
+        <div class="roles" style="grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)">
+          <div class="role priv"><h3 style="font-size:17px">Tugas keperdataan</h3><div class="s">Dasar: KUHPerdata dan peraturan menteri</div><ul><li>Wali pengawas (Pasal 366)</li><li>Pengampu pengawas (Pasal 449)</li><li>Harta orang tidak hadir (Pasal 463)</li><li>Harta peninggalan tak terurus (Pasal 1126 dan 1127)</li><li>Uang pihak ketiga (Permenkumham 7/2021)</li></ul></div>
+          <div style="align-self:center;font-family:var(--f-display);font-size:34px;color:var(--gold)">≠</div>
+          <div class="role bhp"><h3 style="font-size:17px">Tugas sebagai kurator</h3><div class="s" style="color:#f0dfb6">Dasar: UU 37/2004 (Pasal 1 angka 5, 69, 70)</div><ul><li>Pengurusan harta pailit</li><li>Pemberesan harta pailit</li><li>Ditunjuk pengadilan</li><li>Diawasi Hakim Pengawas (Pasal 65)</li></ul></div>
+        </div>
+        <div class="lesson" style="margin-top:12px"><b>Dampak pemisahan yang tegas</b>Kedudukan BHP sebagai kurator negara menjadi tegas dan setara dengan kurator perseorangan. Setiap kewenangan dijalankan menurut dasar hukumnya sendiri, oleh pejabat yang jelas, dan dipertanggungjawabkan kepada pihak yang tepat: tugas kurator kepada Hakim Pengawas, tugas keperdataan menurut KUHPerdata dan pembinaan Kementerian.</div></div>
+    </div>
+  </section>
+
+  <!-- 5 ARAH RUU -->
+  <section class="scene" data-scene="5" hidden>
+    <div class="head"><h1>Materi yang perlu dimuat dalam RUU Profesi Kurator</h1><p>Disusun menurut tiga tujuan penggalian masukan: penegasan peran BHP, peningkatan kualitas profesi, serta penguatan pengawasan dan pertanggungjawaban.</p></div>
+    <div class="grid g-3" id="goals"></div>
+    <div class="panel float c"><h2 style="margin-bottom:8px">Pembagian peran BHP dan kurator perseorangan</h2>
+      <div class="roles">
+        <div class="role bhp"><h3>BHP</h3><div class="s" style="color:#f0dfb6">Kurator negara</div><ul><li>Kewenangan dari undang-undang, tanpa izin atau pendaftaran</li><li>Dijalankan Kurator Keperdataan</li><li>Semua jenis perkara; wajib pada perkara tertentu</li><li>Imbalan jasa menjadi PNBP</li><li>Dibina Kementerian</li></ul></div>
+        <div class="role mid"><div class="eyebrow">Sama</div><div style="font-family:var(--f-display);font-size:18px;font-weight:700">Diawasi Hakim Pengawas</div><div style="font-family:var(--f-display);font-size:18px;font-weight:700">Satu standar profesi dan kode etik</div></div>
+        <div class="role priv"><h3>Kurator perseorangan</h3><div class="s">Orang perseorangan</div><ul><li>Terdaftar pada Kementerian</li><li>Memiliki keahlian khusus</li><li>Perkara atas usulan pemohon; kurator tambahan pada perkara tertentu</li><li>Imbalan jasa menjadi penghasilan</li><li>Etik ditegakkan organisasi profesi</li></ul></div>
+      </div>
+      <div class="coord" style="margin-top:12px"><span><b>Kementerian</b> membina dan mengelola data kurator aktif</span><span><b>Hakim Pengawas</b> mengawasi tiap perkara</span><span><b>Organisasi profesi</b> menegakkan etik kurator perseorangan</span><span><b>BHP dan BPN</b> mengamankan aset, mencegah sertifikat ganda</span></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Sumber: Buku Register Kepailitan dan laporan pengurusan BHP Medan; SIPP PN Medan per 2 Oktober 2026, diolah.</span>
+    <span class="navbtns"><button id="prev" aria-label="Bagian sebelumnya">‹ Sebelumnya</button><button id="next" aria-label="Bagian berikutnya">Berikutnya ›</button></span>
+  </footer>
+</div>
+<div class="botbar"><div class="in"><span><b>Balai Harta Peninggalan Medan</b> · Jalan Listrik No. 10 Medan</span><span>www.bhpmedan.kemenkum.go.id</span><span>Instagram @bhpmedan_kemenkum</span></div></div>
+<div id="tip" role="status"></div>
+
+<script>
+(function () {
+  var NS = "http://www.w3.org/2000/svg";
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var cs = getComputedStyle(document.documentElement);
+  var C = {}; ["gold", "gold-2", "rose", "rose-2", "cream", "fg", "muted", "faint"].forEach(function (k) { C[k] = cs.getPropertyValue("--" + k).trim(); });
+  function el(t, a, p) { var e = document.createElementNS(NS, t); for (var k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
+  function txt(p, a, s) { var e = el("text", a, p); e.textContent = s; return e; }
+  function fmt(x, d) { return Number(x).toLocaleString("id-ID", { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); }
+  function tgl(d) { return new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }); }
+  var TODAY = new Date();
+  function yrs(d) { return (TODAY - new Date(d)) / (365.25 * 864e5); }
+  function tween(dur, delay, fn) { if (reduce) { fn(1); return; } setTimeout(function () { var t0; requestAnimationFrame(function st(t) { if (!t0) t0 = t; var p = Math.min(1, (t - t0) / dur); fn(1 - Math.pow(1 - p, 3)); if (p < 1) requestAnimationFrame(st); }); }, delay || 0); }
+
+  var tip = document.getElementById("tip");
+  function showTip(h, x, y) { tip.innerHTML = h; tip.classList.add("show"); var w = tip.offsetWidth, hh = tip.offsetHeight; var l = Math.min(innerWidth - w - 10, x + 14), t = y - hh - 12; if (t < 8) t = y + 18; tip.style.left = Math.max(8, l) + "px"; tip.style.top = t + "px"; }
+  function hideTip() { tip.classList.remove("show"); }
+  function tipOn(node, html, onEnter, onLeave) {
+    node.setAttribute("tabindex", "0"); node.classList.add("hit");
+    function pos(e) { if (e && e.clientX !== undefined && e.type !== "focus") return [e.clientX, e.clientY]; var b = node.getBoundingClientRect(); return [b.left + b.width / 2, b.top]; }
+    function on(e) { var p = pos(e); showTip(typeof html === "function" ? html() : html, p[0], p[1]); if (onEnter) onEnter(); }
+    function off() { hideTip(); if (onLeave) onLeave(); }
+    node.addEventListener("pointerenter", on); node.addEventListener("pointermove", on); node.addEventListener("focus", on);
+    node.addEventListener("pointerleave", off); node.addEventListener("blur", off);
+  }
+  function countUp(n) {
+    var to = parseFloat(n.dataset.count), d = +(n.dataset.dec || 0), pre = n.dataset.pre || "", suf = n.dataset.suf || "";
+    tween(1200, 0, function (e) { n.textContent = pre + fmt(to * e, d) + suf; });
+  }
+
+  // ===== DATA =====
+  var cases = [
+    { id: "gwe", n: "Gwe Tjoen", no: "2/Pdt.Sus-Pailit/2016/PN Niaga Mdn", d: "2016-02-17", pem: "Debitor sendiri", dom: "Binjai, Sumatera Utara", tag: 25.66, harta: 8.00, hn: "10 bidang tanah dan bangunan", st: "6 dari 10 aset terjual dengan hasil Rp4,48 miliar; Rp2,74 miliar disetor ke kreditor separatis. Debitor meninggal dunia, ahli waris tidak diketahui.", les: "BHP harus mengurus harta pailit sekaligus sisa harta yang tidak ada pemiliknya. Perlu penugasan BHP yang jelas dan pertanggungjawaban yang terpisah untuk kedua tugas itu.", q: "Pertanyaan 2 dan 3" },
+    { id: "hit", n: "CV Hitado", full: "Muhammad Arifin Hasibuan (CV Hitado)", no: "01/Pdt.Sus-Pailit/2017/PN Niaga Mdn", d: "2017-04-25", pem: "Muhammad Arifin Nasution", dom: "Medan, Sumatera Utara", tag: 1.94, harta: 0.53, hn: "1 ruko; 1 mobil tidak ditemukan", st: "Kehilangan mobil dilaporkan ke kepolisian. Penetapan insolvensi belum terbit; rapat kreditor 16 September 2026.", les: "Serah terima saat pergantian pelaksana harus diwajibkan.", q: "Pertanyaan 1 dan koordinasi" },
+    { id: "pro", n: "PT Pro Mekanika Indonusa", no: "2/Pdt.Sus-Pailit/2018/PN Niaga Mdn", d: "2018-06-28", pem: "PT Trimurti Perkasa dan Hotmaulin Simare Mare", dom: "Medan, Sumatera Utara", tag: 2.75, harta: 3.44, hn: "Tanah, bangunan, dan 2 kendaraan, seluruhnya terjual", st: "Hasil bersih Rp2,45 miliar; dibagikan Rp2,19 miliar. Pengakhiran kepailitan dimohonkan.", les: "Bila harta jelas, pemberesan oleh BHP dapat tuntas.", q: "Pertanyaan 1" },
+    { id: "bad", n: "Badaruddin HSB", no: "7/Pdt.Sus-Pailit/2018/PN Niaga Mdn", d: "2018-12-20", pem: "Debitor sendiri", dom: "Aceh Singkil, Aceh", tag: 2.30, harta: 0.93, hn: "1 tanah dan bangunan", st: "Actio pauliana dimenangkan 21 Desember 2021, tetapi sertifikat masih atas nama penerima hibah. Kreditor terbesar KPP Pratama Subulussalam.", les: "Putusan pengadilan perlu dukungan kantor pertanahan agar dapat dijalankan.", q: "Koordinasi" },
+    { id: "sup", n: "Suparjo Rustam", no: "8/Pdt.Sus-Pailit/2019/PN Niaga Mdn", d: "2019-11-08", pem: "Debitor sendiri", dom: "Medan, Sumatera Utara", tag: 0.28, harta: null, hn: "1 mobil atas nama orang lain, belum dinilai", st: "Penelusuran ke 3 kantor pertanahan dan 7 bank; menunggu penilaian untuk lelang.", les: "Penelusuran harta memerlukan dukungan bank dan kantor pertanahan.", q: "Pertanyaan 3" },
+    { id: "rim", n: "PT Rimba Cipta Niaga", no: "2/Pdt.Sus-Pailit/2020/PN Niaga Mdn", d: "2020-03-12", pem: "Debitor sendiri", dom: "Medan, Sumatera Utara", tag: 0, harta: null, hn: "2 portable camp dan 1 alat pengupas kayu, belum dinilai", st: "Tidak ada kreditor yang diakui sah; menunggu penilaian untuk lelang.", les: "Debitor yang bebas memilih pun memilih BHP.", q: "Pertanyaan 3" },
+    { id: "rat", n: "PT Rata Makmur", no: "33/Pdt.Sus-PKPU/2022/PN Niaga Mdn", d: "2023-04-10", pem: "Samin K dan kawan-kawan (eks pekerja)", dom: "Medan dan Langkat, Sumatera Utara", tag: 1.43, harta: 0.17, hn: "Uang tunai dari debitor", st: "Enam eks pekerja menerima Rp133,65 juta (43,2% dari tagihan); tagihan pajak Rp1,11 miliar belum terbayar.", les: "BHP menjadi pengurus PKPU lalu kurator, sehingga data tidak terputus.", q: "Pertanyaan 1 dan 3" },
+    { id: "kso", n: "KSO Maju Abadi", full: "KSO PT Maju Abadi Jaya Utama dan PT Kurnia Putra Maduma", no: "6/Pdt.Sus-Pailit/2023/PN Niaga Mdn jo. 1123 K/Pdt.Sus-Pailit/2023", d: "2023-10-17", pem: "Koperasi Yantek Maju Bersama dan kawan-kawan", dom: "Medan, Sumatera Utara", tag: 4.29, harta: 9.96, hn: "Kas", st: "Piutang Rp13,46 miliar dibantah; empat perkara renvoi menunggu kasasi; 348 eks karyawan menunggu pembagian.", les: "Hak pekerja ikut tertahan oleh sengketa kreditor lain.", q: "Pertanyaan 3 dan koordinasi" },
+    { id: "fra", n: "Frans Winner", no: "12/Pdt.Sus-Pailit/2025/PN Niaga Mdn", d: "2025-12-11", pem: "Salim Hadi Saputra dan Maratur P. Siregar", dom: "Medan, Sumatera Utara", tag: 8.70, harta: null, hn: "143 item barang, belum dinilai", st: "1 kreditor separatis dan 13 kreditor konkuren; insolvensi sejak 23 Februari 2026.", les: "Koordinasi kurator dengan kreditor separatis perlu aturan yang jelas.", q: "Pertanyaan 1" }
+  ];
+  var verdicts = [
+    ["2025-02-27", "PT Jambi Nusantara Energi", "1/Pdt.Sus-Pailit/2025", "Tatang Rusmaya dan kawan", "Eri Lukmanul Hakim Pulungan", 0],
+    ["2025-07-01", "Rosihan Arbie", "5/Pdt.Sus-PKPU/2025", "Suriati", "Goncalwes Sirait", 0],
+    ["2025-07-07", "CV Sukses Jaya Perkasa", "8/Pdt.Sus-Pailit/2025", "Debitor sendiri", "Benjamin Parsaoran Manurung", 0],
+    ["2025-10-24", "PT Golden Gate Mandiri", "10/Pdt.Sus-Pailit/2025", "Soeryo Soemirat", "Haris Marselius Perangin-angin", 0],
+    ["2025-11-21", "PT Jasa Rahayu Gumpueng", "19/Pdt.Sus-PKPU/2025", "Edgar Handoko", "Susy Tan", 0],
+    ["2025-11-27", "CV Riau Sukses Abadi dan Sukrianto", "11/Pdt.Sus-Pailit/2025", "PT Sicoma Indo Perkasa", "BHP Medan; salinan putusan tidak dikirim ke BHP karena diajukan kasasi", 1],
+    ["2025-12-11", "Frans Winner", "12/Pdt.Sus-Pailit/2025", "Salim Hadi Saputra dan kawan", "BHP Medan", 1],
+    ["2025-12-16", "PT Usaha Sepakat Maju Bersama", "9/Pdt.Sus-PKPU/2025", "PT Fairbanc Technologies Indonesia", "Lutfy Mubarok", 0],
+    ["2025-12-29", "PT Riau Crumb Rubber Factory", "13/Pdt.Sus-Pailit/2025", "Buha Togatorop", "Binsar Simbolon", 0],
+    ["2026-03-05", "Armayanti", "41/Pdt.Sus-PKPU/2025", "Adam Nicholas Barclay", "Christian Pranata", 0],
+    ["2026-04-20", "PT Palm Lestari Makmur", "3/Pdt.Sus-PKPU/2026", "Hermanto dan kawan-kawan", "Binsar Simbolon", 0],
+    ["2026-04-24", "PT Kemuning Tambang Sentosa (dalam likuidasi)", "2/Pdt.Sus-Pailit/2026", "Wahyu Ardhitya Prartono dan kawan-kawan", "Arman Chandra dan Jhonny Pratama Simanjuntak", 0],
+    ["2026-05-25", "PT Maruwa Indonesia (dalam likuidasi)", "1/Pdt.Sus-Pailit/2026", "Salvian Salmon dan Nico Lambert Gultom", "Kenny Wangestu", 0],
+    ["2026-07-01", "PT Srimas Raya International", "20/Pdt.Sus-PKPU/2026", "Jimmy dan Febda Wilis", "Dedi Ismanto", 0],
+    ["2026-07-22", "PT Anugerah Makmur Rejeki", "10/Pdt.Sus-PKPU/2026", "Windriani dan kawan", "Halman Simanullang", 0],
+    ["2026-09-09", "PT Keritang Buana Mining (dalam likuidasi)", "6/Pdt.Sus-Pailit/2026", "Likuidator PT Keritang Buana Mining", "La Ode Kudus dan Muhammad Taufan Eprom Hasibuan", 0]
+  ].map(function (a) { return { d: a[0], n: a[1], no: a[2], pem: a[3], k: a[4], bhp: a[5] }; });
+  var requests = [
+    ["3/Pdt.Sus-Pailit/2025", "Apriani Yosephin Manalu dan kawan", "Yayasan Sari Mutiara", "Dicabut", ""],
+    ["4/Pdt.Sus-Pailit/2025", "Juriah dan kawan", "PT Prima Citra Agro Sawita", "Dicabut", ""],
+    ["6/Pdt.Sus-Pailit/2025", "Muhammad Arif dan kawan", "PT PD Paya Pinang", "Dicabut", ""],
+    ["7/Pdt.Sus-Pailit/2025", "Adi dan kawan", "PT Agro Rubberindo Industry", "Ditolak", ""],
+    ["9/Pdt.Sus-Pailit/2025", "Salim Hadi Saputra dan kawan", "Frans Winner dan PT Cahaya Berjaya Sejahtera", "Dicabut", "13 Oktober 2025; diajukan kembali sebagai 12/2025"],
+    ["11/Pdt.Sus-Pailit/2025", "PT Sicoma Indo Perkasa", "CV Riau Sukses Abadi dan Sukrianto", "Dikabulkan", "27 November 2025; BHP Medan diangkat, tetapi salinan putusan tidak dikirim ke BHP karena diajukan kasasi"],
+    ["12/Pdt.Sus-Pailit/2025", "Salim Hadi Saputra dan kawan", "Frans Winner", "Dikabulkan", "11 Desember 2025; BHP Medan diangkat"],
+    ["22/Pdt.Sus-PKPU/2026", "Susi Angelica Br Situmeang", "Asman", "Ditolak", "8 Juni 2026"],
+    ["3/Pdt.Sus-Pailit/2026", "Jamilah dan kawan-kawan", "PT Sinar Mulia Muara Sentosa", "Dicabut", "6 Juli 2026"],
+    ["5/Pdt.Sus-Pailit/2026", "Taufik Ritonga dan 8 pemohon lain", "PT Sinar Bandar Indotama", "Ditolak", "28 Agustus 2026"],
+    ["4/Pdt.Sus-Pailit/2026", "PT Waskita Karya (Persero) Tbk", "PT Makmur Permata Putra", "Masih diperiksa", "Persidangan"]
+  ].map(function (a) { return { no: a[0], pem: a[1], ter: a[2], h: a[3], ket: a[4] }; });
+
+  // ===== SCENE 1: cases =====
+  var selected = "gwe", sortKey = "tag";
+  function renderDetail() {
+    var c = cases.filter(function (x) { return x.id === selected; })[0];
+    var ratio = (c.harta !== null && c.tag > 0) ? Math.round(c.harta / c.tag * 100) : null;
+    var box = document.getElementById("detail");
+    box.innerHTML = "<span class='tag'>" + c.q + "</span><h3>" + (c.full || c.n) + "</h3><div class='no'>" + c.no + "</div>" +
+      "<dl class='kv'><dt>Putusan pailit</dt><dd>" + tgl(c.d) + "</dd><dt>Lama perkara</dt><dd>" + fmt(yrs(c.d), 1) + " tahun</dd><dt>Pemohon</dt><dd>" + c.pem + "</dd><dt>Domisili</dt><dd>" + c.dom + "</dd><dt>Tagihan</dt><dd>" + (c.tag ? "Rp" + fmt(c.tag, 2) + " miliar" : "tidak ada kreditor yang diakui") + "</dd><dt>Harta tercatat</dt><dd>" + (c.harta === null ? c.hn : "Rp" + fmt(c.harta, 2) + " miliar (" + c.hn.toLowerCase() + ")") + "</dd></dl>" +
+      (ratio !== null ? "<div class='meter'><div class='row'><span>Nilai harta dibanding tagihan</span><span>" + ratio + "%</span></div><div class='track'><div class='fill' style='width:0'></div></div></div>" : "") +
+      "<p style='margin:10px 0 0;font-size:14px'>" + c.st + "</p><div class='lesson'><b>Pelajaran</b>" + c.les + "</div>";
+    var f = box.querySelector(".fill"); if (f) requestAnimationFrame(function () { f.style.width = Math.min(100, ratio) + "%"; });
+  }
+  function drawCases() {
+    var svg = document.getElementById("cCase"); svg.innerHTML = "";
+    var L = 200, R = 720, T = 10, H = 44, max = 26, x = function (v) { return L + (R - L) * v / max; };
+    var list = cases.slice().sort(function (a, b) { if (sortKey === "d") return new Date(a.d) - new Date(b.d); var va = a[sortKey] || 0, vb = b[sortKey] || 0; return vb - va; });
+    var defs = el("defs", {}, svg);
+    [["gG", C["gold-2"], C.gold], ["gR", C["rose-2"], C.rose]].forEach(function (g) { var lg = el("linearGradient", { id: g[0], x1: 0, x2: 1 }, defs); el("stop", { offset: 0, "stop-color": g[1] }, lg); el("stop", { offset: 1, "stop-color": g[2] }, lg); });
+    [0, 5, 10, 15, 20, 25].forEach(function (t) { el("line", { x1: x(t), x2: x(t), y1: T, y2: T + H * list.length, class: "gl" }, svg); txt(svg, { x: x(t), y: T + H * list.length + 18, "text-anchor": "middle", class: "ax" }, t); });
+    txt(svg, { x: R, y: T + H * list.length + 36, "text-anchor": "end", class: "ax" }, "Rp miliar");
+    list.forEach(function (c, i) {
+      var y = T + i * H, g = el("g", { class: c.id === selected ? "sel" : "" }, svg);
+      el("rect", { x: 0, y: y, width: R + 30, height: H - 4, rx: 8, fill: "transparent", class: "bgrow" }, g);
+      txt(g, { x: L - 12, y: y + 25, "text-anchor": "end", "font-size": 14, "font-weight": c.id === selected ? 700 : 400 }, c.n);
+      var b1 = el("rect", { x: L, y: y + 6, height: 14, rx: 4, fill: "url(#gG)", class: "mk" }, g);
+      var b2 = c.harta !== null ? el("rect", { x: L, y: y + 22, height: 14, rx: 4, fill: "url(#gR)", class: "mk" }, g) : null;
+      tween(900, i * 60, function (e) { b1.setAttribute("width", Math.max(0, (x(c.tag) - L) * e)); if (b2) b2.setAttribute("width", (x(c.harta) - L) * e); });
+      txt(g, { x: x(c.tag) + 6, y: y + 18, "font-size": 12, fill: C.fg }, c.tag ? fmt(c.tag, 2) : "tidak ada kreditor diakui");
+      if (c.harta !== null) txt(g, { x: x(c.harta) + 6, y: y + 34, "font-size": 12, fill: C.rose }, fmt(c.harta, 2));
+      else txt(g, { x: L + 4, y: y + 34, "font-size": 11.5, fill: C.muted }, "harta belum dinilai");
+      tipOn(g, function () { return "<b>" + c.n + "</b><div class='r'><span>Tagihan</span><span>Rp" + fmt(c.tag, 2) + " M</span></div><div class='r'><span>Harta</span><span>" + (c.harta === null ? "belum dinilai" : "Rp" + fmt(c.harta, 2) + " M") + "</span></div><div style='margin-top:4px;color:#e0c27a'>Klik untuk rincian</div>"; },
+        function () { svg.classList.add("dim"); g.classList.add("on"); }, function () { svg.classList.remove("dim"); g.classList.remove("on"); });
+      g.addEventListener("click", function () { selected = c.id; renderDetail(); drawCases(); });
+      g.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selected = c.id; renderDetail(); drawCases(); } });
+    });
+  }
+  document.querySelectorAll("[data-sort]").forEach(function (b) { b.addEventListener("click", function () { sortKey = b.dataset.sort; document.querySelectorAll("[data-sort]").forEach(function (o) { o.setAttribute("aria-pressed", o === b ? "true" : "false"); }); drawCases(); }); });
+
+  // ===== SCENE 2: gantt =====
+  function drawGantt() {
+    var svg = document.getElementById("cGantt"); svg.innerHTML = "";
+    var L = 200, R = 730, T = 26, H = 42, y0 = new Date("2016-01-01"), y1 = new Date("2027-01-01");
+    var x = function (d) { return L + (R - L) * (new Date(d) - y0) / (y1 - y0); };
+    var list = cases.slice().sort(function (a, b) { return new Date(a.d) - new Date(b.d); });
+    for (var yr = 2016; yr <= 2026; yr++) { var xx = x(yr + "-01-01"); el("line", { x1: xx, x2: xx, y1: T - 6, y2: T + H * list.length, class: "gl" }, svg); txt(svg, { x: xx, y: T + H * list.length + 18, "text-anchor": "middle", class: "ax" }, yr); }
+    var xt = x(TODAY); el("line", { x1: xt, x2: xt, y1: T - 14, y2: T + H * list.length, stroke: C["gold-2"], "stroke-width": 1.5, "stroke-dasharray": "4 4" }, svg);
+    txt(svg, { x: xt, y: T - 16, "text-anchor": "middle", "font-size": 12, fill: C["gold-2"] }, "hari ini");
+    var tot = 0;
+    list.forEach(function (c, i) {
+      var y = T + i * H, g = el("g", {}, svg), Y = yrs(c.d); tot += Y; var long = Y > 5;
+      el("rect", { x: 0, y: y, width: R + 20, height: H - 4, fill: "transparent" }, g);
+      txt(g, { x: L - 12, y: y + 24, "text-anchor": "end", "font-size": 14 }, c.n);
+      var xs = x(c.d), b = el("rect", { x: xs, y: y + 9, height: 20, rx: 10, fill: long ? C.rose : C.gold, class: "mk" }, g);
+      var five = new Date(c.d); five.setFullYear(five.getFullYear() + 5);
+      if (long) el("circle", { cx: x(five), cy: y + 19, r: 3.5, fill: "#ffffff", class: "mk" }, g);
+      el("circle", { cx: xs, cy: y + 19, r: 6, fill: long ? C["rose-2"] : C["gold-2"], stroke: C.fg, "stroke-width": 1.5 }, g);
+      var lab = txt(g, { x: xt + 8, y: y + 24, "font-size": 12.5, fill: C.fg, "font-weight": 700 }, fmt(Y, 1) + " th");
+      tween(1000, i * 70, function (e) { b.setAttribute("width", (xt - xs) * e); });
+      tipOn(g, "<b>" + c.n + "</b><div class='r'><span>Putusan</span><span>" + tgl(c.d) + "</span></div><div class='r'><span>Lama</span><span>" + fmt(Y, 1) + " tahun</span></div><div style='margin-top:6px'>" + c.st + "</div>",
+        function () { svg.classList.add("dim"); g.classList.add("on"); }, function () { svg.classList.remove("dim"); g.classList.remove("on"); });
+    });
+    txt(svg, { x: L, y: T - 16, "font-size": 12, fill: C.muted }, "titik putih = tanda 5 tahun");
+    var mx = yrs(list[0].d), av = tot / list.length;
+    var km = document.getElementById("kMax"), ka = document.getElementById("kAvg");
+    tween(1100, 0, function (e) { km.textContent = fmt(mx * e, 1) + " tahun"; ka.textContent = fmt(av * e, 1) + " tahun"; });
+  }
+
+  // ===== SCENE 3 =====
+  var donutFilter = null, tabMode = "v";
+  function drawCmp() {
+    var svg = document.getElementById("cCmp"); svg.innerHTML = "";
+    var B = 236, T = 20, L = 40, max = 10, y = function (v) { return (B - T) * v / max; };
+    [0, 2, 4, 6, 8, 10].forEach(function (t) { el("line", { x1: L, x2: 740, y1: B - y(t), y2: B - y(t), class: "gl" }, svg); txt(svg, { x: L - 8, y: B - y(t) + 4, "text-anchor": "end", class: "ax" }, t); });
+    var data = [["Putusan pailit", 9, 7, "Termasuk PKPU yang berakhir pailit"], ["Petitum meminta BHP", 7, 4, "Permohonan yang menyebut BHP Medan sebagai kurator"], ["BHP Medan diangkat", 2, 0, "2025: CV Riau Sukses Abadi dan Frans Winner. 2026: belum ada."]];
+    data.forEach(function (d, i) {
+      var gx = L + 30 + i * 232, g = el("g", {}, svg);
+      el("rect", { x: gx - 14, y: T - 10, width: 210, height: B - T + 46, rx: 10, fill: "transparent" }, g);
+      [[d[1], C.cream, 0], [d[2], C.gold, 1]].forEach(function (p) {
+        var bx = gx + 22 + p[2] * 82, r = el("rect", { x: bx, width: 66, rx: 6, fill: p[1], class: "mk" }, g);
+        var v = txt(g, { x: bx + 33, "text-anchor": "middle", "font-size": 18, "font-weight": 700, fill: p[1] }, p[0]);
+        tween(900, i * 150 + p[2] * 120, function (e) { var h = y(p[0]) * e; r.setAttribute("y", B - h); r.setAttribute("height", h); v.setAttribute("y", B - h - 8); });
+      });
+      txt(g, { x: gx + 96, y: B + 22, "text-anchor": "middle", "font-size": 14 }, d[0]);
+      tipOn(g, "<b>" + d[0] + "</b><div class='r'><span>Perkara 2025</span><span>" + d[1] + "</span></div><div class='r'><span>2026 (s.d. 2 Oktober)</span><span>" + d[2] + "</span></div><div style='margin-top:6px'>" + d[3] + "</div>",
+        function () { svg.classList.add("dim"); g.classList.add("on"); }, function () { svg.classList.remove("dim"); g.classList.remove("on"); });
+    });
+  }
+  var groups = [["Dikabulkan", "BHP diangkat", "gold"], ["Dicabut", "Dicabut", "rose"], ["Ditolak", "Ditolak", "cream"], ["Masih diperiksa", "Masih diperiksa", "muted"]];
+  function drawDonut() {
+    var svg = document.getElementById("cDonut"); svg.innerHTML = "";
+    var cx = 150, cy = 122, R = 92, circ = 2 * Math.PI * R, acc = 0, tot = requests.length;
+    el("circle", { cx: cx, cy: cy, r: R, fill: "none", stroke: C.faint, "stroke-width": 30 }, svg);
+    var lg = document.getElementById("lgDonut"); lg.innerHTML = "";
+    groups.forEach(function (gr, i) {
+      var v = requests.filter(function (r) { return r.h === gr[0]; }).length, len = circ * v / tot, col = C[gr[2]];
+      var a = el("circle", { cx: cx, cy: cy, r: R, fill: "none", stroke: col, "stroke-width": donutFilter === gr[0] ? 38 : 30, "stroke-dasharray": "0 " + circ, "stroke-dashoffset": -acc, transform: "rotate(-90 " + cx + " " + cy + ")", opacity: donutFilter && donutFilter !== gr[0] ? .35 : 1 }, svg);
+      tween(800, 150 + i * 180, function (e) { a.setAttribute("stroke-dasharray", Math.max(0, (len - 3) * e) + " " + circ); });
+      acc += len;
+      tipOn(a, "<b>" + (gr[0] === "Dikabulkan" ? "Dikabulkan, BHP diangkat" : gr[0]) + "</b><div class='r'><span>Jumlah</span><span>" + v + " dari " + tot + "</span></div><div style='margin-top:4px;color:#e0c27a'>Klik untuk menyaring daftar</div>");
+      a.addEventListener("click", function () { donutFilter = donutFilter === gr[0] ? null : gr[0]; setTab("r"); drawDonut(); });
+      var s = document.createElement("button"); s.className = "chip"; s.setAttribute("aria-pressed", donutFilter === gr[0] ? "true" : "false");
+      s.innerHTML = "<i style='display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;background:" + col + "'></i>" + (gr[0] === "Dikabulkan" ? "Dikabulkan, BHP diangkat" : gr[0]) + " (" + v + ")";
+      s.addEventListener("click", function () { donutFilter = donutFilter === gr[0] ? null : gr[0]; setTab("r"); drawDonut(); }); lg.appendChild(s);
+    });
+    var big = txt(svg, { x: cx, y: cy + 6, "text-anchor": "middle", "font-size": 42, "font-weight": 700, "font-family": "Source Serif 4, Cambria, serif", fill: C.gold }, "2");
+    txt(svg, { x: cx, y: cy + 30, "text-anchor": "middle", "font-size": 13, fill: C.muted }, "dari 11 dikabulkan");
+  }
+  function drawTime() {
+    var svg = document.getElementById("cTime"); svg.innerHTML = "";
+    var s = new Date("2025-01-01"), e = new Date("2026-10-31"), X0 = 20, X1 = 740, Y = 52, x = function (d) { return X0 + (X1 - X0) * (new Date(d) - s) / (e - s); };
+    el("line", { x1: X0, x2: X1, y1: Y, y2: Y, stroke: C.faint, "stroke-width": 3, "stroke-linecap": "round" }, svg);
+    ["2025-01-01", "2025-07-01", "2026-01-01", "2026-07-01"].forEach(function (d) { el("line", { x1: x(d), x2: x(d), y1: Y - 5, y2: Y + 5, stroke: C.muted }, svg); txt(svg, { x: x(d), y: Y + 26, "text-anchor": "middle", class: "ax" }, new Date(d).toLocaleDateString("id-ID", { month: "short", year: "numeric" })); });
+    var last = -99, lane = 0;
+    verdicts.forEach(function (v, i) {
+      var cx = x(v.d); lane = cx - last < 14 ? lane + 1 : 0; last = cx; var cy = Y - 14 - lane * 12;
+      var g = el("g", {}, svg); el("line", { x1: cx, x2: cx, y1: cy, y2: Y, stroke: v.bhp ? C.gold : C.rose, opacity: .5 }, g);
+      var c = el("circle", { cx: cx, cy: cy, r: 0, fill: v.bhp ? C.gold : C.rose, stroke: "#ffffff", "stroke-width": 1.5 }, g);
+      tween(500, 200 + i * 60, function (k) { c.setAttribute("r", (v.bhp ? 8 : 6) * k); });
+      tipOn(g, "<b>" + v.n + "</b>" + v.no + "<div class='r'><span>Putusan</span><span>" + tgl(v.d) + "</span></div><div style='margin-top:4px'>Kurator: " + v.k + "</div>");
+    });
+  }
+  function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+  function drawTable() {
+    var q = (document.getElementById("q").value || "").toLowerCase(), t = document.getElementById("tbl");
+    if (tabMode === "v") {
+      var rows = verdicts.filter(function (v) { return !q || (v.n + v.pem + v.k + v.no).toLowerCase().indexOf(q) >= 0; });
+      t.innerHTML = "<thead><tr><th>Tanggal</th><th>Nomor perkara</th><th>Debitor</th><th>Pemohon</th><th>Kurator</th></tr></thead><tbody>" + rows.map(function (v) {
+        return "<tr class='" + (v.bhp ? "bhp" : "") + "'><td class='num'>" + new Date(v.d).toLocaleDateString("id-ID") + "</td><td>" + esc(v.no) + "</td><td>" + esc(v.n) + "</td><td>" + esc(v.pem) + "</td><td>" + (v.bhp ? "<span class='pill p-bhp'>BHP Medan</span>" + (v.k.indexOf(";") > 0 ? " <span style='color:var(--muted);font-size:12.5px'>salinan putusan tidak dikirim ke BHP karena diajukan kasasi</span>" : "") : "<span class='pill p-priv'>Perseorangan</span> " + esc(v.k)) + "</td></tr>"; }).join("") + "</tbody>";
+    } else {
+      var rr = requests.filter(function (r) { return (!donutFilter || r.h === donutFilter) && (!q || (r.no + r.pem + r.ter).toLowerCase().indexOf(q) >= 0); });
+      t.innerHTML = "<thead><tr><th>Nomor perkara</th><th>Pemohon</th><th>Termohon</th><th>Hasil</th><th>Keterangan</th></tr></thead><tbody>" + rr.map(function (r) {
+        var cls = r.h === "Dikabulkan" ? "p-ok" : r.h === "Masih diperiksa" ? "p-wait" : "p-no";
+        return "<tr><td>" + esc(r.no) + "</td><td>" + esc(r.pem) + "</td><td>" + esc(r.ter) + "</td><td><span class='pill " + cls + "'>" + r.h + "</span></td><td>" + esc(r.ket) + "</td></tr>"; }).join("") + "</tbody>";
+    }
+  }
+  function setTab(m) { tabMode = m; document.querySelectorAll("[data-tab]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.tab === m ? "true" : "false"); }); drawTable(); }
+  document.querySelectorAll("[data-tab]").forEach(function (b) { b.addEventListener("click", function () { if (b.dataset.tab === "v") donutFilter = null; setTab(b.dataset.tab); drawDonut(); }); });
+  document.getElementById("q").addEventListener("input", drawTable);
+
+  // ===== SCENE 4 =====
+  var meets = [
+    { n: "1", h: "Tugas bersama", s: "BHP dan kurator perseorangan menangani perkara yang sama", w: "Pembagian imbalan dan tanggung jawab belum diatur. Pada PT Jasa Prima Mandiri (2015 s.d. 2019), harta Rp12,85 miliar dibereskan bersama, tetapi pembagian imbalan tidak punya dasar aturan.", g: "Hakim Pengawas menetapkan pembagian tugas, tanggung jawab, dan imbalan sejak rapat kreditor pertama; bagian BHP menjadi PNBP; serah terima wajib." },
+    { n: "2", h: "Dua tugas BHP", s: "BHP menjadi kurator sekaligus mengurus harta peninggalan", w: "Pada Gwe Tjoen, debitor meninggal dan ahli warisnya tidak diketahui. Selain mengurus harta pailit, BHP juga harus memikirkan sisa harta yang tidak ada pemiliknya, yang menurut KUHPerdata menjadi tugas BHP.", g: "Dasar hukum, pelaksana, dan pertanggungjawaban tugas keperdataan dan tugas kurator dipisahkan; BHP tetap menjalankan tugas kurator." },
+    { n: "3", h: "Perkara tertentu", s: "Tidak jelas siapa yang harus menjadi kurator", w: "Dari 16 putusan pailit 2025 s.d. 2026, BHP diangkat 2 kali dan keduanya atas permintaan pemohon. Enam permohonan perorangan yang meminta BHP tidak berakhir pailit.", g: "Pengadilan wajib mengangkat BHP pada perkara dengan kriteria tertutup; di luar itu pemohon bebas memilih kurator." }
+  ];
+  var meetSel = 0;
+  function drawMeet() {
+    var m = document.getElementById("meet"); m.innerHTML = "";
+    meets.forEach(function (o, i) {
+      var b = document.createElement("button"); b.setAttribute("aria-pressed", i === meetSel ? "true" : "false");
+      b.innerHTML = "<div class='n'>" + o.n + "</div><div style='font-weight:700'>" + o.h + "</div><div style='color:var(--muted);font-size:13px'>" + o.s + "</div>";
+      b.addEventListener("click", function () { meetSel = i; drawMeet(); }); b.addEventListener("pointerenter", function () { meetSel = i; drawMeet(); }); m.appendChild(b);
+    });
+    var o = meets[meetSel];
+    document.getElementById("flow").innerHTML = "<div class='box'><b>Keadaan</b>" + o.h + ". " + o.s + ".</div><div class='arr' aria-hidden='true'>›</div><div class='box'><b>Yang terjadi</b>" + o.w + "</div><div class='arr' aria-hidden='true'>›</div><div class='box goal'><b>Arah pengaturan RUU</b>" + o.g + "</div>";
+  }
+  var steps = ["Putusan pengadilan mengangkat BHP", "Kepala BHP menugaskan tim Kurator Keperdataan", "Pengumuman dan rapat kreditor", "Pencatatan harta dan pencocokan tagihan", "Penilaian dan lelang", "Pembagian hasil", "Imbalan jasa ke kas negara (PNBP)"];
+  var stepTimer = null;
+  function drawSteps() {
+    var s = document.getElementById("steps"); s.innerHTML = "";
+    steps.forEach(function (t, i) { var d = document.createElement("div"); d.className = "step"; d.innerHTML = "<div class='k'>" + (i + 1) + "</div><div class='x'>" + t + "</div>"; d.addEventListener("pointerenter", function () { clearInterval(stepTimer); act(i); }); s.appendChild(d); });
+    function act(i) { s.querySelectorAll(".step").forEach(function (d, j) { d.classList.toggle("act", j === i); }); }
+    var k = 0; act(0); clearInterval(stepTimer); if (!reduce) stepTimer = setInterval(function () { k = (k + 1) % steps.length; act(k); }, 1400);
+  }
+
+  // ===== SCENE 5 =====
+  function drawGoals() {
+    var goals = [
+      { h: "Penegasan peran BHP", q: "Menjawab Pertanyaan 2 dan 3", u: ["BHP sebagai kurator negara dan pengurus negara; kewenangan dari undang-undang tanpa izin atau pendaftaran.", "Pengadilan wajib mengangkat BHP bila debitor meninggal tanpa ahli waris atau hartanya tak terurus, tidak diketahui keberadaannya, ahli waris masih anak atau dalam pengampuan, permohonan pekerja, atau perkara kehilangan kurator.", "Di luar itu pemohon bebas memilih; rincian di RUU Kepailitan dan PKPU."], b: "Pijakan: Pasal 15 ayat (2) UU 37/2004; Pasal 1127 KUHPerdata." },
+      { h: "Peningkatan kualitas profesi", q: "Menjawab Pertanyaan 1 dan 2", u: ["Satu standar profesi dan kode etik bagi BHP dan kurator perseorangan.", "Tugas kurator BHP dijalankan pejabat fungsional Kurator Keperdataan.", "Data kurator aktif dan beban perkaranya dikelola Kementerian."], b: "Pijakan: TOR Komisi XIII mencatat standar profesi yang terfragmentasi." },
+      { h: "Pengawasan dan pertanggungjawaban", q: "Menjawab Pertanyaan 1 dan 2", u: ["Hakim Pengawas mengawasi pengurusan dan pemberesan oleh setiap kurator.", "Pembagian tugas, tanggung jawab, dan imbalan dalam tugas bersama ditetapkan sejak awal.", "Serah terima wajib saat kurator atau pejabat BHP berganti dan saat PKPU berakhir pailit.", "Tugas keperdataan dan tugas kurator BHP dijalankan pejabat berbeda."], b: "Pijakan: Pasal 65 dan Pasal 73 UU 37/2004." }
+    ];
+    var w = document.getElementById("goals"); w.innerHTML = "";
+    goals.forEach(function (g, i) { var d = document.createElement("div"); d.className = "panel goal-card float" + (i === 1 ? " b" : i === 2 ? " c" : ""); d.innerHTML = "<div class='q'>" + g.q + "</div><h3>" + g.h + "</h3><ul>" + g.u.map(function (u) { return "<li>" + u + "</li>"; }).join("") + "</ul><div class='base'>" + g.b + "</div>"; w.appendChild(d); });
+  }
+
+  // ===== NAV =====
+  var cur = 0, scenes = document.querySelectorAll(".scene"), tabs = document.querySelectorAll("nav button");
+  var drawers = [function () { document.querySelectorAll('[data-scene="0"] [data-count]').forEach(countUp); document.querySelectorAll('[data-scene="0"] .bar i').forEach(function (b) { b.style.width = 0; requestAnimationFrame(function () { requestAnimationFrame(function () { b.style.width = b.dataset.w + "%"; }); }); }); },
+    function () { renderDetail(); drawCases(); }, drawGantt, function () { drawCmp(); drawDonut(); drawTime(); drawTable(); }, function () { drawMeet(); drawSteps(); }, drawGoals];
+  function go(n) {
+    cur = (n + scenes.length) % scenes.length; hideTip(); clearInterval(stepTimer);
+    scenes.forEach(function (s, i) { s.hidden = i !== cur; });
+    tabs.forEach(function (b, i) { b.setAttribute("aria-selected", i === cur ? "true" : "false"); });
+    drawers[cur]();
+    try { localStorage.setItem("bhp-scene", cur); } catch (e) {}
+  }
+  tabs.forEach(function (b) { b.addEventListener("click", function () { go(+b.dataset.s); }); });
+  document.getElementById("prev").addEventListener("click", function () { go(cur - 1); });
+  document.getElementById("next").addEventListener("click", function () { go(cur + 1); });
+  document.addEventListener("keydown", function (e) { if (e.target.tagName === "INPUT") return; if (e.key === "ArrowRight" || e.key === "PageDown") go(cur + 1); if (e.key === "ArrowLeft" || e.key === "PageUp") go(cur - 1); });
+  var st = 0; try { st = +(localStorage.getItem("bhp-scene") || 0); } catch (e) {}
+  go(st >= 0 && st < scenes.length ? st : 0);
+})();
+</script>
+</body></html>
