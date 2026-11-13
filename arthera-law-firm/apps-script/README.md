@@ -14,6 +14,8 @@ Berkas masuk ke subfolder sesuai bagiannya dan diberi nama seragam:
 | D | D. Produk Kelas 3 | `Katalog Produk` |
 | E | E. Tanda Tangan | `15 Surat Pernyataan dan Surat Kuasa`, `16 Bukti Transfer Pembayaran` |
 
+Ringkasan isian teks disimpan sebagai `00 Ringkasan Isian.txt` di folder utama klien.
+
 Kalau klien mengunggah ulang, versi lama dipindah ke subfolder `_Arsip` dengan cap waktu, tidak dihapus.
 
 ## Cara pasang
@@ -30,6 +32,6 @@ Tambahkan entri baru di `CLIENTS` (Nomor PKS, email klien, dan ID kelima subfold
 
 ## Batasan
 
-- Hanya berkas yang diunggah; jawaban isian teks di portal tidak dikirim ke Drive.
+- Skrip menerima ringkasan isian teks (`kind: 'summary'`), tetapi portal di `public/index.html` belum mengirimkannya.
 - Maksimal 15 MB per berkas; format JPG, PNG, PDF, DOC, DOCX.
 - Login portal di situs berjalan di browser, jadi pemeriksaan Nomor PKS dan email di sini bukan pengaman kuat. Skrip hanya bisa menulis ke folder yang terdaftar di `CLIENTS`.

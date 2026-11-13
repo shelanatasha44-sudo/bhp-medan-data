@@ -13,6 +13,7 @@ var CLIENTS = {
   '288/PKS-ART-TM/X/2026': {
     nama: 'Merek LYO MORE',
     email: 'arinmcwijayahutapea@gmail.com',
+    root: '1SfcyUyQKsNJXG0hL2ZMuBTpUg9LyDmxD', // 01 Pendaftaran Merek LYO MORE
     folders: {
       A: '1xoXbi2Wah5L1FYMYYEltLWnabi8RhuaN', // A. Identitas
       B: '1ersvRK4glVw0FAkI0FNBW9Gi4t-N4KLt', // B. Data Usaha (NIB)
@@ -49,19 +50,24 @@ function doPost(e) {
     var check = validate_(req);
     if (check.error) return json_({ ok: false, error: check.error });
 
-    var bytes = Utilities.base64Decode(req.dataBase64);
-    if (bytes.length > MAX_BYTES) return json_({ ok: false, error: 'Ukuran berkas melebihi 15 MB.' });
+    var blob;
+    if (check.summary) {
+      blob = Utilities.newBlob(String(req.text), 'text/plain', check.baseName + '.txt');
+    } else {
+      var bytes = Utilities.base64Decode(req.dataBase64);
+      if (bytes.length > MAX_BYTES) return json_({ ok: false, error: 'Ukuran berkas melebihi 15 MB.' });
+      blob = Utilities.newBlob(bytes, req.mimeType || 'application/octet-stream', check.baseName + '.' + check.ext);
+    }
 
     var lock = LockService.getScriptLock();
     lock.waitLock(20000);
     try {
       var folder = DriveApp.getFolderById(check.folderId);
       archiveOld_(folder, check.baseName);
-      var fileName = check.baseName + '.' + check.ext;
-      var file = folder.createFile(Utilities.newBlob(bytes, req.mimeType || 'application/octet-stream', fileName));
-      file.setDescription('Diunggah klien lewat situs Arthera pada ' + new Date().toISOString() +
-        ' · Nama asli: ' + String(req.fileName).slice(0, 200));
-      return json_({ ok: true, fileName: fileName, section: check.section });
+      var file = folder.createFile(blob);
+      file.setDescription('Dikirim klien lewat situs Arthera pada ' + new Date().toISOString() +
+        (check.summary ? '' : ' · Nama asli: ' + String(req.fileName).slice(0, 200)));
+      return json_({ ok: true, fileName: blob.getName(), section: check.section });
     } finally {
       lock.releaseLock();
     }
@@ -70,12 +76,19 @@ function doPost(e) {
   }
 }
 
-/** Memeriksa permintaan. Mengembalikan {error} atau {folderId, baseName, ext, section}. */
+/** Memeriksa permintaan. Mengembalikan {error} atau {folderId, baseName, ext, section, summary}. */
 function validate_(req) {
   if (!req || typeof req !== 'object') return { error: 'Permintaan tidak valid.' };
   var client = CLIENTS[String(req.clientId || '').trim().toUpperCase()];
   if (!client) return { error: 'Folder Drive untuk klien ini belum disiapkan Admin Arthera.' };
   if (String(req.email || '').trim().toLowerCase() !== client.email) return { error: 'Email klien tidak sesuai.' };
+
+  // Ringkasan isian teks: satu berkas .txt di folder utama klien
+  if (req.kind === 'summary') {
+    if (!req.text || String(req.text).length > 200000) return { error: 'Ringkasan isian kosong atau terlalu panjang.' };
+    return { folderId: client.root, baseName: '00 Ringkasan Isian', section: '-', summary: true };
+  }
+
   var doc = DOCS[req.docId];
   if (!doc) return { error: 'Jenis berkas tidak dikenal.' };
   var m = /\.([A-Za-z0-9]+)$/.exec(String(req.fileName || ''));
