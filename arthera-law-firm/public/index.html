@@ -1428,6 +1428,58 @@
     });
 
     // =========================================================================
+    // UPLOAD BERKAS KLIEN KE GOOGLE DRIVE ARTHERA
+    // Isi dengan URL web app Apps Script (berakhiran /exec), lihat apps-script/README.md.
+    // Selama masih kosong, berkas hanya dicatat di browser klien dan TIDAK terkirim.
+    // =========================================================================
+    const DRIVE_UPLOAD_ENDPOINT = '';
+    const DRIVE_UPLOAD_MAX_BYTES = 15 * 1024 * 1024;
+
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+        reader.onerror = () => reject(new Error('Berkas tidak dapat dibaca'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function uploadFileToArtheraDrive(item, file) {
+      if (file.size > DRIVE_UPLOAD_MAX_BYTES) {
+        showToast('Berkas terlalu besar', 'Ukuran maksimal 15 MB per berkas');
+        return;
+      }
+      showToast(`Mengunggah "${file.name}"…`, 'Mohon tunggu, jangan tutup halaman ini');
+      try {
+        const dataBase64 = await readFileAsBase64(file);
+        // text/plain agar tidak memicu preflight CORS di Apps Script
+        const res = await fetch(DRIVE_UPLOAD_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            clientId: state.authenticatedPksNo,
+            email: state.authenticatedEmail,
+            docId: item.id,
+            fileName: file.name,
+            mimeType: file.type,
+            dataBase64
+          })
+        });
+        const out = await res.json();
+        if (!out.ok) throw new Error(out.error || 'Server menolak berkas');
+        item.fileName = out.fileName;
+        item.fileSize = `${Math.max(1, Math.round(file.size / 1024))} KB`;
+        item.completed = true;
+        savePortalState();
+        renderServiceWorkspace();
+        showToast(`Berkas tersimpan: ${out.fileName}`, `Masuk ke folder Bagian ${out.section} di Google Drive Arthera`);
+      } catch (err) {
+        renderServiceWorkspace();
+        showToast('Berkas GAGAL diunggah', `${err.message}. Silakan coba lagi atau hubungi Admin Arthera.`);
+      }
+    }
+
+    // =========================================================================
     // 1. KONFIGURASI 5 LAYANAN HUKUM (ALUR -> FORM BERSIH -> LOGIN ID DRAF)
     // =========================================================================
     const SERVICES_CONFIG = {
@@ -3308,6 +3360,10 @@
           const file = e.target.files && e.target.files[0];
           if (!file) return;
           const item = state.uploadItems.find(x => x.id === docId);
+          if (item && DRIVE_UPLOAD_ENDPOINT) {
+            uploadFileToArtheraDrive(item, file);
+            return;
+          }
           if (item) {
             item.fileName = file.name;
             item.fileSize = `${Math.max(1, Math.round(file.size / 1024))} KB`;
