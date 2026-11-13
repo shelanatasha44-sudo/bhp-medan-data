@@ -20,7 +20,12 @@ npx wrangler deploy
 
 ## Logo layanan
 
-Logo tiap layanan (varian "Warna Khas") tampil di kartu menu layanan, kartu pop-up, dan header halaman layanan.
+Sembilan logo layanan (varian "Warna Khas") dipakai di situs:
 
-- `assets/logo-layanan/*.jpg` — salinan logo yang sudah diperkecil (480×466)
+- Lima logo yang punya tab layanan tampil di kartu menu layanan, kartu pop-up, dan header halaman layanan.
+- Kesembilan logo tampil sebagai galeri di Company Profile > Area Praktik.
+
+Berkas:
+
+- `assets/logo-layanan/*.jpg` — salinan logo yang sudah diperkecil (480×473)
 - Di `public/index.html` logo ditanam sebagai base64 dalam `SERVICE_LOGOS`, karena Worker hanya menyajikan satu halaman
