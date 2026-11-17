@@ -55,7 +55,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 4px; }
 .foot button { padding: 11px 20px; font-size: 14.5px; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px 20px; margin-bottom: 14px; box-shadow: 0 6px 20px rgba(16,27,63,.06); }
-.card > h2 { margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line); font: 600 21px var(--serif); color: var(--navy); display: flex; justify-content: space-between; align-items: center; gap: 8px; position: relative; }
+.card > h2 { margin: 0 0 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line); font: 700 19px var(--serif); text-transform: uppercase; letter-spacing: .06em; color: var(--navy); display: flex; justify-content: space-between; align-items: center; gap: 8px; position: relative; }
 .card > h2::after { content: ""; position: absolute; left: 0; bottom: -1px; width: 46px; height: 2px; background: var(--gold); }
 label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 10px 0 4px; letter-spacing: .01em; }
 label.chk { display: flex; gap: 8px; align-items: center; font-size: 13.5px; color: var(--fg); }
@@ -1088,7 +1088,7 @@ function renderForm() {
    ===================================================================== */
 function P(indent, html, extra) { return '<p style="margin-left:' + indent + "cm;" + (extra || "") + '">' + html + "</p>"; }
 function LI(indent, mark, text) { return '<p style="margin-left:' + indent + "cm;text-indent:-0.75cm\">" + mark + '<span style="display:inline-block;width:' + (0.75 - 0.2 * mark.length).toFixed(2) + 'cm"></span>' + R(text) + "</p>"; }
-function Hd(indent, mark, text) { if (indent === 0.75) text = String(text).toUpperCase(); return '<p style="margin-left:' + indent + 'cm;text-indent:-0.75cm;margin-top:8pt;text-align:left"><b>' + mark + '<span style="display:inline-block;width:' + (0.75 - 0.2 * mark.length).toFixed(2) + 'cm"></span>' + esc(text) + "</b></p>"; }
+function Hd(indent, mark, text) { return '<p style="margin-left:' + indent + 'cm;text-indent:-0.75cm;margin-top:8pt;text-align:left"><b>' + mark + '<span style="display:inline-block;width:' + (0.75 - 0.2 * mark.length).toFixed(2) + 'cm"></span>' + esc(text) + "</b></p>"; }
 function abc(i) { return String.fromCharCode(97 + i) + "."; }
 var PB = '<div class="pb"></div><br clear="all" style="page-break-before:always;mso-break-type:section-break">';
 
