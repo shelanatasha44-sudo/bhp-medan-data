@@ -87,6 +87,15 @@ textarea.tall { min-height: 170px; }
 .lipat > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--gold-3); list-style: none; }
 .lipat > summary::before { content: "▸ "; }
 .lipat[open] > summary::before { content: "▾ "; }
+.pen > summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; font: 600 17px var(--serif); color: var(--navy); }
+.pen > summary::-webkit-details-marker { display: none; }
+.pen > summary .pj::before { content: "▸ "; color: var(--gold); }
+.pen[open] > summary .pj::before { content: "▾ "; }
+.pen > summary .tag { font-family: var(--sans); white-space: nowrap; max-width: 52%; overflow: hidden; text-overflow: ellipsis; }
+.unggah { display: inline-flex; align-items: center; justify-content: center; margin-top: 10px; padding: 11px 16px; border-radius: 9px; cursor: pointer; font-weight: 600; font-size: 14px; color: var(--navy-2);
+  background: linear-gradient(180deg, var(--gold-2), var(--gold)); border: 1px solid var(--gold-3); }
+.unggah input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.unggah:focus-within { outline: 2px solid var(--navy); outline-offset: 2px; }
 .ringkas { margin: 4px 0 0; padding: 10px 12px; background: var(--faint); border: 1px solid var(--line); border-radius: 10px; font-size: 14px; line-height: 1.6; }
 .ringkas b { color: var(--navy); }
 
@@ -122,10 +131,38 @@ textarea.tall { min-height: 170px; }
 .paper table.foto { width: 100%; }
 .paper table.foto td { width: 50%; vertical-align: top; text-align: center; padding: 4pt 5pt 10pt; font-size: 9pt; line-height: 1.3; }
 .paper table.foto img { max-width: 100%; height: auto; }
-@media (max-width: 1000px) { .wrap { grid-template-columns: 1fr; padding: 16px 14px 40px; } .preview { position: static; max-height: none; padding: 10px; } .topbar .t2 { font-size: 21px; } .step .l { font-size: 10.5px; } .paper { padding: 12mm; } .paper .pb { margin: 12mm -12mm; } }
+.mbar { display: none; }
+@media (max-width: 1000px) {
+  body { font-size: 15px; }
+  /* bagian atas ringkas */
+  .topbar .in { padding: 8px 12px; gap: 8px; flex-wrap: nowrap; }
+  .brand { gap: 10px; } .brand img { width: 34px; height: 37px; }
+  .topbar .t1, .topbar .t3 { display: none; } .topbar .t2 { font-size: 17px; white-space: nowrap; }
+  .actions { gap: 6px; flex-wrap: nowrap; } .actions button { padding: 6px 10px; font-size: 12.5px; }
+  .status, #btnNew { display: none; } .brand { min-width: 0; flex: 1; } .brand > div { min-width: 0; } .topbar .t2 { overflow: hidden; text-overflow: ellipsis; }
+  /* satu layar: isi ATAU pratinjau, tidak bertumpuk ke bawah */
+  .wrap { grid-template-columns: 1fr; padding: 0 12px 96px; gap: 0; }
+  body:not(.lihat) .preview { display: none; }
+  body.lihat .form { display: none; }
+  .preview { position: static; max-height: none; padding: 8px; margin-top: 12px; border-radius: 12px; }
+  .preview::before { margin-bottom: 8px; }
+  .paper { padding: 20mm 20mm 25mm 30mm; width: 210mm; max-width: none; }
+  /* langkah menempel di atas, tombol di bawah */
+  .steps { position: sticky; top: 0; z-index: 20; margin: 0 -12px 0; border-radius: 0; border-width: 0 0 1px; padding: 8px 4px; }
+  .step .l { font-size: 11px; } .step .n { width: 26px; height: 26px; font-size: 13px; } .step::before { top: 16px; }
+  .lead { font-size: 16px; margin: 12px 2px 10px; }
+  .card { padding: 14px 14px 16px; margin-bottom: 10px; border-radius: 12px; }
+  .card > h2 { font-size: 19px; }
+  .row { grid-template-columns: 1fr; gap: 0; }
+  .form .foot { display: none; }
+  .mbar { display: grid; grid-template-columns: 1fr 1.1fr 1fr; gap: 8px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: rgba(255,255,255,.97); border-top: 1px solid var(--line); box-shadow: 0 -6px 20px rgba(16,27,63,.12); }
+  .mbar button { padding: 11px 8px; font-size: 14px; }
+  .mbar .lihatBtn { background: var(--navy); color: #fff; border-color: var(--navy); }
+}
 @media print {
   @page { size: A4; margin: 20mm 20mm 25mm 30mm; }
-  body { background: #fff; } .topbar, .form, .masuk { display: none !important; }
+  body { background: #fff; } .topbar, .form, .masuk, .mbar { display: none !important; } body .preview { display: block !important; } .paper { zoom: 1 !important; }
   .wrap { display: block; padding: 0; max-width: none; } .preview { position: static; max-height: none; overflow: visible; padding: 0; background: none; box-shadow: none; border-radius: 0; } .preview::before { display: none; }
   .paper { box-shadow: none; width: auto; padding: 0; }
   .paper .pb { border: 0; margin: 0; break-after: page; }
@@ -164,8 +201,9 @@ textarea.tall { min-height: 170px; }
 
 <div class="wrap">
   <div class="form" id="form"></div>
-  <div class="preview"><div class="paper" id="paper"></div></div>
+  <div class="preview" id="previewBox"><div class="paper" id="paper"></div></div>
 </div>
+<div class="mbar" id="mbar"></div>
 
 <script>document.write('<script src="templates/naskah.js?v=' + Date.now() + '"><\/script><script src="templates/pegawai.js?v=' + Date.now() + '"><\/script>');</script>
 <script>
@@ -886,12 +924,12 @@ function lipat(id, judul, isi, buka) {
 function renderForm() {
   var h = "", peny = S.jenis === "penyumpahan";
   h += '<div class="card"><h2>1. Jenis Kegiatan</h2>' + sel("Jenis kegiatan (tusi)", "jenis", JENIS, true) +
-    '<label class="chk"><input type="checkbox" data-k="sampul"' + (S.sampul ? " checked" : "") + "> Sertakan halaman sampul</label>";
+    "";
   var rst = (S.ruj || {}).st;
   h += '<div class="item ' + (rst && rst.nama ? (rst.terbaca ? "ok" : "warn") : "bad") + '"><h3>Surat Tugas <span class="tag' + (rst && rst.nama ? "" : " man") + '">' + (rst && rst.nama ? "sudah diunggah" : "wajib") + "</span></h3>" +
-    '<p class="hint">Unggah Surat Tugas kegiatan ini (.docx atau .pdf). Nomor, tanggal, penetapan, wilayah, dan tim diisi otomatis darinya. Langkah lain tetap bisa dibuka, tetapi laporan baru bisa dicetak setelah Surat Tugas diunggah.</p>' +
-    '<input type="file" accept=".docx,.pdf" id="fileST" style="margin-top:8px">' +
-    (rst && rst.nama ? '<p class="hint"><b>' + esc(rst.nama) + "</b> — " + esc(rst.info || "") + "</p>" : "") + "</div></div>";
+    (rst && rst.nama ? '<p class="hint" style="margin-top:4px">✓ <b>' + esc(rst.nama) + "</b> — " + esc(rst.info || "") + "</p>"
+      : '<p class="hint">File .docx atau .pdf. Tanggal, tim, dan penetapan terisi otomatis darinya.</p>') +
+    '<label class="unggah"><input type="file" accept=".docx,.pdf" id="fileST">' + (rst && rst.nama ? "Ganti Surat Tugas" : "📎 Pilih file Surat Tugas") + "</label></div></div>";
 
   var isiWaktu = '<div class="row">' + inp("Tanggal kegiatan (mulai)", "tglKegiatan", "date", "data-re") + inp("Tanggal selesai (kosong = 1 hari)", "tglSelesai", "date", "data-re") + "</div>" +
     '<div class="row">' + inp("Wilayah kegiatan (untuk Surat Tugas)", "wilayah", "text", 'placeholder="Kota Medan"') + inp("Tanggal laporan (kosong = hari terakhir)", "tglLaporan", "date") + "</div>" +
@@ -925,7 +963,8 @@ function renderForm() {
       var dataPen = '<div class="row">' + sel("Jenis perkara", k + "jenis", [{ id: "perwalian", label: "Perwalian (wali)" }, { id: "pengampuan", label: "Pengampuan (pengampu)" }], true) + inp("Pengadilan", k + "pn", "text", 'placeholder="Pengadilan Negeri Lubuk Pakam"') + "</div>" +
         '<div class="row">' + inp("Nomor penetapan", k + "nomor", "text", 'placeholder="323/Pdt.P/2025/PN Lbp"') + inp("Tanggal penetapan", k + "tgl", "date") + "</div>" + inp("Nama " + w, k + "wali");
       var judulPen = p.wali.trim() ? esc(t.W) + " an. " + esc(p.wali.trim()) : "Penetapan " + (i + 1);
-      h += '<div class="item ' + hs.cls + '"><h3>' + judulPen + '<button class="sm del" data-act="delPen" data-i="' + i + '"' + (S.penetapan.length < 2 ? " disabled" : "") + ">Hapus</button></h3>" +
+      var belum = !p.anak.trim() || !p.nomor.trim(), bukaPen = BUKA["p" + i] != null ? BUKA["p" + i] : (belum && S.penetapan.findIndex(function (q) { return !q.anak.trim() || !q.nomor.trim(); }) === i);
+      h += '<details class="item pen ' + hs.cls + '" data-lipat="p' + i + '"' + (bukaPen ? " open" : "") + '><summary><span class="pj">' + judulPen + '</span><span class="tag' + (belum ? " man" : "") + '">' + (belum ? "perlu diisi" : esc(hs.singkat)) + "</span></summary>" +
         (p.nomor.trim() ? '<p class="hint" style="margin:2px 0 0">' + esc(p.pn) + " Nomor " + esc(p.nomor) + (p.tgl ? " tanggal " + esc(tgl(p.tgl)) : "") + "</p>" + lipat("pen" + i, "Ubah data penetapan", dataPen, false) : dataPen) +
         inp("Nama " + t.a, k + "anak") +
         sel("Hasil pelaksanaan", k + "hasil", HASIL, true) +
@@ -941,7 +980,7 @@ function renderForm() {
         '<div class="row">' + inp(t.a.charAt(0).toUpperCase() + t.a.slice(1) + " adalah … dari " + w, k + "hubungan", "text", 'placeholder="anak kandung / keponakan"') + (p.hasil === "gagal_tidak_ditemui" ? "<div></div>" : inp("Alamat " + w, k + "alamat")) + "</div>" +
         (hs.sukses ? '<div class="row">' + sel("Disumpah menurut agama", k + "agama", AGAMA) + inp("Saksi", k + "saksi", "text", 'placeholder="nama dan jabatan saksi"') + "</div>" : "") +
         area("Latar belakang singkat (masuk ke bagian Umum)", k + "latar", "mis. tempat/tanggal lahir anak, keperluan perwalian, objek harta"), false);
-      h += "</div>";
+      h += '<div style="margin-top:10px;text-align:right"><button class="sm del" data-act="delPen" data-i="' + i + '"' + (S.penetapan.length < 2 ? " disabled" : "") + ">Hapus penetapan ini</button></div></details>";
     });
     h += "</div>";
   } else {
@@ -965,7 +1004,7 @@ function renderForm() {
   var nFoto = S.krono.filter(function (k) { return k.foto; }).length, nIsi = S.krono.filter(function (k) { return k.uraian.trim(); }).length;
   h += '<div class="card"><h2>5. Cerita &amp; foto kegiatan</h2>' + kartuCerita() +
     '<div class="item" style="border-left-color:var(--navy)"><h3>Foto kegiatan</h3><p class="hint">Pilih semua foto sekaligus (Timemark/kamera). Urutan dan jam tersusun sendiri.</p>' +
-    '<input type="file" accept="image/*" multiple id="fotoBanyak" style="margin-top:8px">' + (S.info ? '<p class="hint" style="color:var(--ok)"><b>' + esc(S.info) + "</b></p>" : nFoto ? '<p class="hint">' + nFoto + " foto terunggah.</p>" : "") +
+    '<label class="unggah"><input type="file" accept="image/*" multiple id="fotoBanyak">📷 Pilih foto</label>' + (S.info ? '<p class="hint" style="color:var(--ok)"><b>' + esc(S.info) + "</b></p>" : nFoto ? '<p class="hint">' + nFoto + " foto terunggah.</p>" : "") +
     (isAdmin() && ai.sibuk === "foto" ? '<p class="hint"><b>Membaca isi foto (jam, lokasi, kegiatan)…</b></p>' : isAdmin() && ai.pesan && /foto/.test(ai.pesan) ? '<p class="hint" style="color:' + (ai.galat ? "var(--bad)" : "var(--ok)") + '"><b>' + esc(ai.pesan) + "</b></p>" : "") + "</div>";
   var hKr = '<p class="hint">Tiap butir menjadi satu kalimat “Pada pukul … WIB, …” di laporan.</p>' +
     (peny ? '<button class="sm" data-act="autoKr">Susun kronologi otomatis dari data penetapan</button><p class="hint">Hasilnya draf yang bisa diedit. Klik lagi bila data penetapan berubah. Lokasi tiap butir otomatis menjadi daftar "Tempat Kegiatan".</p>' : '<p class="hint">Lokasi tiap butir otomatis menjadi daftar "Tempat Kegiatan".</p>');;
@@ -998,6 +1037,7 @@ function renderForm() {
     (kurang.length ? '<p class="hint" style="color:var(--bad)"><b>Belum bisa dicetak:</b> unggah ' + esc(kurang.join(" dan ")) + " di langkah 1.</p>" : '<p class="hint">Periksa pratinjau. Tulisan <span style="color:#c00000">merah</span> berarti masih kosong.</p>') +
     '<div style="display:grid;gap:8px;margin-top:10px"><button class="pri" data-act="cetak" style="padding:12px">🖨️ Cetak / Simpan PDF</button><button data-act="word" style="padding:12px">⬇️ Unduh Word</button>' +
     '<button data-act="lihatST" style="padding:12px">' + (S.dok === "st" ? "📄 Kembali ke Laporan" : "📄 Lihat Surat Tugas") + "</button></div>" +
+    '<label class="chk" style="margin-top:12px"><input type="checkbox" data-k="sampul"' + (S.sampul ? " checked" : "") + "> Sertakan halaman sampul</label>" +
     lipat("naskah", "Ubah isi laporan (opsional)", '<p class="hint">Mengetik di kotak mana pun menjadikannya manual (tidak lagi mengikuti isian).</p>' + ovArea("A.1 Umum", "umum", "Satu paragraf per baris.", true) + ovArea("A.2 Maksud dan Tujuan", "maksud", "Satu butir per baris.") + ovArea("A.4 Dasar", "dasar", "Satu butir per baris.") +
     ovArea("C. Hasil yang Dicapai", "hasil", "Satu butir per baris.") + ovArea("D.1 Simpulan", "simpulan") + ovArea("D.2 Saran", "saran"), false) + "</div>";
 
@@ -1012,6 +1052,12 @@ function renderForm() {
     '<p class="lead">' + lead[st] + "</p>";
   var foot = '<div class="foot"><button data-act="step" data-i="' + prev + '"' + (prev === undefined ? " disabled" : "") + ">← Sebelumnya</button>" +
     (next !== undefined ? '<button class="pri" data-act="step" data-i="' + next + '">Lanjut →</button>' : "") + "</div>";
+  var lihat = document.body.classList.contains("lihat");
+  document.getElementById("mbar").innerHTML = lihat
+    ? '<span></span><button class="lihatBtn" data-mact="lihat">✏️ Kembali isi</button>' + (st === 2 ? '<button class="pri" data-mact="cetak">🖨️ Cetak</button>' : "<span></span>")
+    : '<button data-mact="step" data-i="' + prev + '"' + (prev === undefined ? " disabled" : "") + ">←</button>" +
+      '<button class="lihatBtn" data-mact="lihat">👁 Pratinjau</button>' +
+      (next !== undefined ? '<button class="pri" data-mact="step" data-i="' + next + '">Lanjut →</button>' : '<button class="pri" data-mact="cetak">🖨️ Cetak</button>');
   var el = document.getElementById("form");
   el.innerHTML = nav + h.replace(/<h2>(\d+|AI)\. /g, "<h2>") + foot;
   Array.prototype.forEach.call(el.querySelectorAll(".card"), function (c, i) { if (peta[i] !== st) c.style.display = "none"; });
@@ -1152,8 +1198,17 @@ function buildPaper(word) {
   return h;
 }
 
+/* Di layar HP, kertas A4 diperkecil agar pas selebar layar */
+function pasKertas() {
+  var pp = document.getElementById("paper"), box = document.getElementById("previewBox");
+  if (window.innerWidth > 1000) { pp.style.zoom = ""; return; }
+  var w = (box.clientWidth || window.innerWidth - 24) - 16;
+  pp.style.zoom = Math.min(1, w / 794).toFixed(3);
+}
+window.addEventListener("resize", pasKertas);
 function renderPaper() {
   document.getElementById("paper").innerHTML = buildPaper(false);
+  pasKertas();
   var sisa = document.querySelectorAll("#paper .ph").length + kurangRuj().length, stEl = document.getElementById("status");
   stEl.textContent = sisa ? sisa + " isian belum lengkap" : "✓ Dokumen lengkap"; stEl.className = "status" + (sisa ? "" : " ok");
   /* kotak naskah yang masih "otomatis" ikut diperbarui */
@@ -1235,6 +1290,13 @@ form.addEventListener("click", function (e) {
   }
   if (a === "resetOv") { var key = btn.getAttribute("data-key"); if (S.ov[key] != null && !confirm("Buang suntingan manual pada bagian ini?")) return; delete S.ov[key]; }
   semua();
+});
+document.getElementById("mbar").addEventListener("click", function (e) {
+  var b = e.target.closest("[data-mact]"); if (!b || b.disabled) return;
+  var a = b.getAttribute("data-mact");
+  if (a === "lihat") { document.body.classList.toggle("lihat"); renderForm(); pasKertas(); window.scrollTo(0, 0); return; }
+  if (a === "cetak") { if (bolehCetak()) window.print(); else { document.body.classList.remove("lihat"); renderForm(); } return; }
+  if (a === "step") { document.body.classList.remove("lihat"); S.step = +b.getAttribute("data-i"); simpan(); renderForm(); window.scrollTo(0, 0); }
 });
 document.getElementById("brandLogo").src = LOGO;
 document.getElementById("btnAdmin").onclick = keluar;
