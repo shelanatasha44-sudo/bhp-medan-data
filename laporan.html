@@ -81,6 +81,21 @@ textarea.tall { min-height: 170px; }
 .preview { position: sticky; top: 14px; max-height: calc(100vh - 28px); overflow: auto; padding: 18px; border-radius: 16px; background: linear-gradient(180deg, #1a2752, var(--navy-2)); box-shadow: inset 0 0 0 1px rgba(217,189,122,.35), 0 10px 30px rgba(10,18,48,.25); }
 .preview::before { content: "PRATINJAU DOKUMEN"; display: block; text-align: center; font-size: 10.5px; letter-spacing: .28em; color: var(--gold-2); font-weight: 600; margin-bottom: 14px; }
 
+/* ---- layar masuk ---- */
+.masuk { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; overflow: auto;
+  background: radial-gradient(900px 500px at 20% 0%, #23326b 0%, transparent 60%), linear-gradient(180deg, var(--navy), var(--navy-2)); }
+.masuk[hidden] { display: none; }
+.masuk .kotak { width: 100%; max-width: 420px; background: #fff; border-radius: 18px; padding: 30px 28px 26px; text-align: center; box-shadow: 0 0 0 1px var(--gold-2), 0 20px 60px rgba(0,0,0,.45); }
+.masuk img { width: 76px; height: 84px; border-radius: 10px; box-shadow: 0 0 0 1px var(--gold-2); }
+.masuk .t1 { margin-top: 14px; font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--gold-3); font-weight: 600; }
+.masuk h1 { margin: 4px 0 2px; font: 600 27px/1.15 var(--serif); color: var(--navy); }
+.masuk .t3 { color: var(--muted); font-size: 13.5px; margin-bottom: 20px; }
+.masuk .pilih { display: grid; gap: 10px; text-align: left; }
+.masuk .pilih > button { width: 100%; padding: 13px 16px; font-size: 15px; }
+.masuk .garis { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; margin: 6px 0; }
+.masuk .garis::before, .masuk .garis::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.masuk .galat { color: var(--bad); font-size: 13px; min-height: 18px; margin: 6px 0 0; }
+
 /* ---- kertas ---- */
 .paper { background: #fff; width: 210mm; max-width: 100%; margin: 0 auto; padding: 20mm 20mm 25mm 30mm; box-shadow: 0 10px 34px rgba(0,0,0,.4); color: #000; font: 12pt/1.5 Arial, Helvetica, sans-serif; }
 .paper p { margin: 0 0 6pt; text-align: justify; }
@@ -101,7 +116,7 @@ textarea.tall { min-height: 170px; }
 @media (max-width: 1000px) { .wrap { grid-template-columns: 1fr; padding: 16px 14px 40px; } .preview { position: static; max-height: none; padding: 10px; } .topbar .t2 { font-size: 21px; } .step .l { font-size: 10.5px; } .paper { padding: 12mm; } .paper .pb { margin: 12mm -12mm; } }
 @media print {
   @page { size: A4; margin: 20mm 20mm 25mm 30mm; }
-  body { background: #fff; } .topbar, .form { display: none !important; }
+  body { background: #fff; } .topbar, .form, .masuk { display: none !important; }
   .wrap { display: block; padding: 0; max-width: none; } .preview { position: static; max-height: none; overflow: visible; padding: 0; background: none; box-shadow: none; border-radius: 0; } .preview::before { display: none; }
   .paper { box-shadow: none; width: auto; padding: 0; }
   .paper .pb { border: 0; margin: 0; break-after: page; }
@@ -110,6 +125,22 @@ textarea.tall { min-height: 170px; }
 </style>
 </head>
 <body>
+<div class="masuk" id="masuk" hidden>
+  <div class="kotak">
+    <img id="masukLogo" alt="Logo Pengayoman">
+    <div class="t1">Kementerian Hukum RI · Kanwil Sumatera Utara</div>
+    <h1>Balai Harta Peninggalan Medan</h1>
+    <div class="t3">Penyusun Laporan Kegiatan &amp; Surat Tugas</div>
+    <div class="pilih">
+      <button class="pri" id="masukPegawai">Masuk sebagai Pegawai</button>
+      <div class="garis">atau</div>
+      <label for="sandiMasuk" style="margin:0">Kata sandi admin</label>
+      <input type="password" id="sandiMasuk" autocomplete="current-password" placeholder="Hanya untuk admin">
+      <button id="masukAdminBtn">Masuk sebagai Admin</button>
+      <p class="galat" id="masukGalat" role="alert"></p>
+    </div>
+  </div>
+</div>
 <div class="topbar"><div class="in">
   <div class="brand"><img id="brandLogo" alt="Logo Pengayoman"><div><div class="t1">Kementerian Hukum RI · Kantor Wilayah Sumatera Utara</div><div class="t2">Balai Harta Peninggalan Medan</div><div class="t3">Penyusun Laporan Kegiatan &amp; Surat Tugas</div></div></div>
   <div class="actions">
@@ -118,7 +149,7 @@ textarea.tall { min-height: 170px; }
     <button class="pri" id="btnPrint">Cetak / Simpan PDF</button>
     <button class="ghost" id="btnWord">Unduh Word</button>
     <button class="ghost" id="btnNew">Laporan baru</button>
-    <button class="ghost" id="btnAdmin" title="Khusus admin">Admin</button>
+    <button class="ghost" id="btnAdmin" title="Keluar dan kembali ke layar masuk">Keluar</button>
   </div>
 </div></div>
 
@@ -255,16 +286,27 @@ function panggilClaude(content) {
     return JSON.parse(t.slice(a, z + 1));
   });
 }
-function masukAdmin() {
-  var pw = prompt("Kata sandi admin:"); if (!pw) return;
-  kirimServer({ password: pw, cek: true }).then(function (j) {
-    try { sessionStorage.setItem(KEY_ADMIN, pw); } catch (e) {}
-    ai.pesan = j.siap ? "Mode admin aktif. Langkah Otomatis sudah terbuka." : "Mode admin aktif, tetapi kunci API belum dipasang di Vercel."; ai.galat = !j.siap;
-    S.step = 4; simpan(); aturAdmin(); renderForm();
-  }).catch(function (e) { alert(e.message); });
+/* Layar masuk muncul setiap kali tautan dibuka (sekali per tab browser). */
+var KEY_MASUK = "bhp-masuk";
+function sudahMasuk() { try { return !!sessionStorage.getItem(KEY_MASUK); } catch (e) { return false; } }
+function tampilMasuk(ya) {
+  var m = document.getElementById("masuk"); m.hidden = !ya;
+  if (ya) { document.getElementById("masukGalat").textContent = ""; document.getElementById("sandiMasuk").value = ""; document.getElementById("masukPegawai").focus(); }
 }
-function keluarAdmin() { try { sessionStorage.removeItem(KEY_ADMIN); } catch (e) {} ai.pesan = ""; if (S.step === 4) S.step = 5; simpan(); aturAdmin(); renderForm(); }
-function aturAdmin() { var b = document.getElementById("btnAdmin"); if (b) b.textContent = isAdmin() ? "Keluar admin" : "Admin"; }
+function masukPegawai() { try { sessionStorage.setItem(KEY_MASUK, "pegawai"); sessionStorage.removeItem(KEY_ADMIN); } catch (e) {} if (+S.step === 4) S.step = 5; simpan(); aturAdmin(); renderForm(); tampilMasuk(false); }
+function masukAdmin() {
+  var inp = document.getElementById("sandiMasuk"), gal = document.getElementById("masukGalat"), btn = document.getElementById("masukAdminBtn"), pw = inp.value;
+  if (!pw) { gal.textContent = "Isi kata sandi admin."; inp.focus(); return; }
+  btn.disabled = true; btn.textContent = "Memeriksa…"; gal.textContent = "";
+  kirimServer({ password: pw, cek: true }).then(function (j) {
+    try { sessionStorage.setItem(KEY_ADMIN, pw); sessionStorage.setItem(KEY_MASUK, "admin"); } catch (e) {}
+    ai.pesan = j.siap ? "" : "Kunci API belum dipasang di Vercel."; ai.galat = !j.siap;
+    simpan(); aturAdmin(); renderForm(); tampilMasuk(false);
+  }).catch(function (e) { gal.textContent = e.message; inp.select(); })
+    .then(function () { btn.disabled = false; btn.textContent = "Masuk sebagai Admin"; });
+}
+function keluar() { try { sessionStorage.removeItem(KEY_ADMIN); sessionStorage.removeItem(KEY_MASUK); } catch (e) {} ai.pesan = ""; if (+S.step === 4) S.step = 5; simpan(); aturAdmin(); renderForm(); tampilMasuk(true); }
+function aturAdmin() { var b = document.getElementById("btnAdmin"); if (b) b.textContent = isAdmin() ? "Keluar (Admin)" : "Keluar"; }
 function ringkasData() {
   var peny = S.jenis === "penyumpahan";
   return {
@@ -1033,8 +1075,13 @@ form.addEventListener("click", function (e) {
   semua();
 });
 document.getElementById("brandLogo").src = LOGO;
-document.getElementById("btnAdmin").onclick = function () { if (isAdmin()) keluarAdmin(); else masukAdmin(); };
+document.getElementById("btnAdmin").onclick = keluar;
+document.getElementById("masukLogo").src = LOGO;
+document.getElementById("masukPegawai").onclick = masukPegawai;
+document.getElementById("masukAdminBtn").onclick = masukAdmin;
+document.getElementById("sandiMasuk").addEventListener("keydown", function (e) { if (e.key === "Enter") masukAdmin(); });
 aturAdmin();
+tampilMasuk(!sudahMasuk());
 var selDok = document.getElementById("selDok"); selDok.value = S.dok || "laporan";
 selDok.onchange = function () { S.dok = selDok.value; simpan(); renderPaper(); };
 document.getElementById("btnPrint").onclick = function () { if (bolehCetak()) window.print(); };
