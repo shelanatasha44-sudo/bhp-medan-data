@@ -4,6 +4,7 @@ Folder ini menyimpan semua naskah baku yang dipakai `laporan.html`. Semuanya bis
 
 | Berkas | Isi | Dipakai aplikasi? |
 |---|---|---|
+| `pegawai.js` | Daftar pegawai (nama, NIP, pangkat/golongan, jabatan) untuk Tim Pelaksana dan tanda tangan | Ya, dimuat setiap kali aplikasi dibuka |
 | `naskah.js` | Pilihan jenis kegiatan, pilihan hasil penyumpahan, paragraf "Umum", maksud dan tujuan, dasar hukum, kop surat | Ya, dimuat setiap kali aplikasi dibuka |
 | `dokumen/laporan-kegiatan.md` | Kerangka laporan kegiatan (semua tusi) | Acuan |
 | `dokumen/laporan-penyumpahan.md` | Kalimat baku laporan penyumpahan wali/pengampu per hasil | Acuan |

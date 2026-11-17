@@ -1,0 +1,40 @@
+/* DAFTAR PEGAWAI BHP MEDAN — dipakai untuk mengisi Tim Pelaksana dan tanda tangan.
+   Hanya nama, NIP, pangkat/golongan, dan jabatan. Jangan menambahkan data pribadi lain
+   (alamat, nomor HP, BPJS, NPWP, rekening): repo ini publik.
+   Ubah langsung di GitHub bila ada kenaikan pangkat, mutasi, atau pegawai baru. */
+var PEGAWAI = [
+  {"nama": "Syafriadi Lubis, S.T., M.Si.", "nip": "198205112005011001", "pangkat": "Pembina (IV/a)", "jabatan": "Kepala BHP Medan"},
+  {"nama": "Nelsy Depari, S.H., M.H.", "nip": "198410272002122002", "pangkat": "Penata Tk. I (III/d)", "jabatan": "Kepala Subbagian Umum"},
+  {"nama": "Lusiana Tarihoran, S.H., M.Si.", "nip": "197304101998032001", "pangkat": "Pembina (IV/a)", "jabatan": "Kepala Seksi Harta Peninggalan Wilayah I"},
+  {"nama": "Elsintha Damayanti, S.H.", "nip": "197105051992032001", "pangkat": "Penata Tk. I (III/d)", "jabatan": "Kepala Seksi Harta Peninggalan Wilayah II"},
+  {"nama": "Budiyanto, S.H.", "nip": "197312212001121001", "pangkat": "Penata Tk. I (III/d)", "jabatan": "Kepala Seksi Harta Peninggalan Wilayah III"},
+  {"nama": "Syuhada, S.H., M.Hum", "nip": "196706121989031001", "pangkat": "Pembina Tk. I (IV/b)", "jabatan": "Kurator Keperdataan Ahli Madya"},
+  {"nama": "Dartimnov M T Harahap, S.H., M.H.", "nip": "197311272002121001", "pangkat": "Pembina Tk. I (IV/b)", "jabatan": "Kurator Keperdataan Ahli Madya"},
+  {"nama": "Mariani Br Marbun, S.E.", "nip": "197604222003122001", "pangkat": "Pembina (IV/a)", "jabatan": "Kurator Keperdataan Ahli Madya"},
+  {"nama": "Tumiar Simanjorang, S.H.", "nip": "197306111993032001", "pangkat": "Penata Tk. I (III/d)", "jabatan": "Kurator Keperdataan Ahli Madya"},
+  {"nama": "Nanang Surya Purnama, S.H., M.H.", "nip": "198106282000031001", "pangkat": "Penata Tk. I (III/d)", "jabatan": "Kurator Keperdataan Ahli Muda"},
+  {"nama": "Titin Wahyunasari Dongoran, S.E.", "nip": "198001172010012010", "pangkat": "Penata Tk. I (III/d)", "jabatan": "Kurator Keperdataan Ahli Muda"},
+  {"nama": "Joko Prabowo, S.H., M.Kn.", "nip": "199101242019011001", "pangkat": "Penata Muda Tk. I (III/b)", "jabatan": "Kurator Keperdataan Ahli Muda"},
+  {"nama": "Dian Stevany Tongli, S.H., M.Kn.", "nip": "199209232019012001", "pangkat": "Penata Muda Tk. I (III/b)", "jabatan": "Kurator Keperdataan Ahli Muda"},
+  {"nama": "M. Taufik Rahman, S.H.", "nip": "199106032018011003", "pangkat": "Penata (III/c)", "jabatan": "Kurator Keperdataan Ahli Muda"},
+  {"nama": "Shela Natasha, S.H.", "nip": "199511132017122001", "pangkat": "Penata (III/c)", "jabatan": "Kurator Keperdataan Ahli Muda"},
+  {"nama": "Hutri Zebua, S.H., M.H.", "nip": "199308172017121001", "pangkat": "Penata Muda Tk. I (III/b)", "jabatan": "Kurator Keperdataan Ahli Pertama"},
+  {"nama": "Nur Fairuz Diba Nasution, S.H.", "nip": "199310092017122001", "pangkat": "Penata Muda Tk. I (III/b)", "jabatan": "Kurator Keperdataan Ahli Pertama"},
+  {"nama": "Diajeng Kartika Sari, S.E.", "nip": "199104202025062004", "pangkat": "Penata Muda (III/a)", "jabatan": "Kurator Keperdataan Ahli Pertama"},
+  {"nama": "Rifal Sapta Hadi, S.E.", "nip": "199211242025061005", "pangkat": "Penata Muda (III/a)", "jabatan": "Kurator Keperdataan Ahli Pertama"},
+  {"nama": "Andre Yosua Surbakti, S.E.", "nip": "199301102025061006", "pangkat": "Penata Muda (III/a)", "jabatan": "Kurator Keperdataan Ahli Pertama"},
+  {"nama": "Teuku Meurah Albar, S.E.", "nip": "199303162025061008", "pangkat": "Penata Muda (III/a)", "jabatan": "Kurator Keperdataan Ahli Pertama"},
+  {"nama": "Harto Alfredo Siregar, S.H.", "nip": "199608072025061004", "pangkat": "Penata Muda (III/a)", "jabatan": "Kurator Keperdataan Ahli Pertama"},
+  {"nama": "Annisa Dwi Marina, S.E.", "nip": "199608232025062015", "pangkat": "Penata Muda (III/a)", "jabatan": "Kurator Keperdataan Ahli Pertama"},
+  {"nama": "Elsy Indriani, S.E.", "nip": "199609052025062014", "pangkat": "Penata Muda (III/a)", "jabatan": "Kurator Keperdataan Ahli Pertama"},
+  {"nama": "Yusril Ihza Mahendra, S.H.", "nip": "199909162025061006", "pangkat": "Penata Muda (III/a)", "jabatan": "Kurator Keperdataan Ahli Pertama"},
+  {"nama": "Nindia, S.Ak.", "nip": "200010172025062014", "pangkat": "Penata Muda (III/a)", "jabatan": "Kurator Keperdataan Ahli Pertama"},
+  {"nama": "Naek Parlindungan Sibuea, S.E.", "nip": "198005152010121003", "pangkat": "Penata Tk. I (III/d)", "jabatan": "Pengolah Data dan Informasi"},
+  {"nama": "Betty Irawati Sinaga, S.H.", "nip": "197207051998032002", "pangkat": "Penata Tk. I (III/d)", "jabatan": "Pengelola Layanan Operasional"},
+  {"nama": "Adelina Irmadewita Siagian, S.Kom.", "nip": "198808132015032002", "pangkat": "Penata (III/c)", "jabatan": "Penelaah Teknis Kebijakan"},
+  {"nama": "Agni Ramaniya Maharani, S.H.", "nip": "199410112017122001", "pangkat": "Penata Muda Tk. I (III/b)", "jabatan": "Penelaah Teknis Kebijakan"},
+  {"nama": "Tridola Siregar, S.E.", "nip": "198803162019012001", "pangkat": "Penata Muda (III/a)", "jabatan": "Penata Kelola Pemerintahan"},
+  {"nama": "Febrina Siringoringo, A.Md.", "nip": "199202132019012001", "pangkat": "Pengatur Tk. I (II/d)", "jabatan": "Penelaah Teknis Kebijakan"},
+  {"nama": "Indriana Nurkamsiah, A.Md.", "nip": "199609192019012001", "pangkat": "Pengatur Tk. I (II/d)", "jabatan": "Pengadministrasi Perkantoran"},
+  {"nama": "Roy Alexander, A.Md.Ak.", "nip": "199812162020121001", "pangkat": "Pengatur (II/c)", "jabatan": "Pengelola Layanan Pengadaan"}
+];
