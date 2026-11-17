@@ -23,3 +23,7 @@ Isian ditulis dalam kurung kurawal, misalnya `{nama wali}`.
 
 - Perubahan di cabang kerja (`ccr-*`, `claude/*`) digabung otomatis ke `main` oleh `.github/workflows/gabung-otomatis.yml`.
 - Aplikasi memuat `naskah.js` terbaru setiap kali dibuka, tanpa perlu menghapus cache.
+
+## Laman AI
+
+Langkah "AI" di aplikasi memanggil Claude API langsung dari browser. Kunci API dimasukkan tiap pegawai di aplikasi dan hanya tersimpan di browser perangkat itu. **Jangan pernah menulis kunci API di berkas mana pun di repo ini**: repo ini publik, dan kunci yang bocor bisa dipakai orang lain atas tagihan Anda.
