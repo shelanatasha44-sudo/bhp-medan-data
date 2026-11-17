@@ -235,11 +235,11 @@ var KEY_ADMIN = "bhp-admin";
 function sandiAdmin() { try { return sessionStorage.getItem(KEY_ADMIN) || ""; } catch (e) { return ""; } }
 function isAdmin() { return !!sandiAdmin(); }
 function kirimServer(isi) {
-  if (location.protocol === "file:") return Promise.reject(new Error("Bantuan Claude hanya tersedia di versi online (bhp-medan-laporan.vercel.app)."));
+  if (location.protocol === "file:") return Promise.reject(new Error("Penyusunan otomatis hanya tersedia di versi online (bhp-medan-laporan.vercel.app)."));
   return fetch("/api/claude", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(isi) })
     .then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
-        if (r.status === 404) throw new Error("Layanan AI tidak ditemukan di alamat ini. Gunakan versi online di Vercel.");
+        if (r.status === 404) throw new Error("Layanan penyusunan otomatis tidak ditemukan di alamat ini. Gunakan versi online di Vercel.");
         if (r.status === 401) { try { sessionStorage.removeItem(KEY_ADMIN); } catch (e) {} throw new Error(j.galat || "Kata sandi admin salah."); }
         if (!r.ok) throw new Error(j.galat || ("Galat server " + r.status + "."));
         return j;
@@ -248,10 +248,10 @@ function kirimServer(isi) {
 }
 function panggilClaude(content) {
   return kirimServer({ password: sandiAdmin(), content: content }).then(function (j) {
-    if (j.stop_reason === "refusal") throw new Error("Claude menolak permintaan ini.");
+    if (j.stop_reason === "refusal") throw new Error("Permintaan ditolak oleh layanan.");
     if (j.stop_reason === "max_tokens") throw new Error("Jawaban terpotong karena terlalu panjang. Kurangi jumlah foto atau data, lalu coba lagi.");
     var t = j.text || "", a = t.indexOf("{"), z = t.lastIndexOf("}");
-    if (a < 0 || z <= a) throw new Error("Jawaban Claude tidak dapat dibaca.");
+    if (a < 0 || z <= a) throw new Error("Jawaban tidak dapat dibaca.");
     return JSON.parse(t.slice(a, z + 1));
   });
 }
@@ -259,7 +259,7 @@ function masukAdmin() {
   var pw = prompt("Kata sandi admin:"); if (!pw) return;
   kirimServer({ password: pw, cek: true }).then(function (j) {
     try { sessionStorage.setItem(KEY_ADMIN, pw); } catch (e) {}
-    ai.pesan = j.siap ? "Mode admin aktif. Tab AI sudah terbuka." : "Mode admin aktif, tetapi kunci API Claude belum dipasang di Vercel."; ai.galat = !j.siap;
+    ai.pesan = j.siap ? "Mode admin aktif. Langkah Otomatis sudah terbuka." : "Mode admin aktif, tetapi kunci API belum dipasang di Vercel."; ai.galat = !j.siap;
     S.step = 4; simpan(); aturAdmin(); renderForm();
   }).catch(function (e) { alert(e.message); });
 }
@@ -308,7 +308,7 @@ function aiFoto() {
     S.krono = awal.concat(berjam);
     var tg = berjam.map(function (k) { return k.tgl; }).filter(Boolean).sort();
     if (tg.length && !S.tglKegiatan) { S.tglKegiatan = tg[0]; if (tg[tg.length - 1] !== tg[0]) S.tglSelesai = tg[tg.length - 1]; }
-    return n + " foto dibaca Claude. Jam, lokasi, dan uraian yang kosong sudah diisi; isian yang sudah Anda tulis tidak diubah. Periksa di langkah Kronologi.";
+    return n + " foto dibaca. Jam, lokasi, dan uraian yang kosong sudah diisi; isian yang sudah Anda tulis tidak diubah. Periksa di langkah Kronologi.";
   });
 }
 function aiNaskah() {
@@ -322,7 +322,7 @@ function aiNaskah() {
     if (Array.isArray(j.hasil) && j.hasil.length) S.ov.hasil = j.hasil.map(String).join("\n");
     if (j.simpulan) S.ov.simpulan = String(j.simpulan);
     if (j.saran) S.ov.saran = String(j.saran);
-    return "Hasil, Simpulan, dan Saran sudah ditulis Claude. Periksa di langkah Naskah; tombol Kembalikan otomatis mengembalikan versi semula.";
+    return "Hasil, Simpulan, dan Saran sudah disusun. Periksa di langkah Naskah; tombol Kembalikan otomatis mengembalikan versi semula.";
   });
 }
 function aiPosisi() {
@@ -331,7 +331,7 @@ function aiPosisi() {
       "\n\nRingkas posisi terakhir pengurusan dan pemberesan harta pailit perkara ini dalam satu atau dua paragraf untuk bagian Umum laporan kegiatan: putusan pailit, kurator dan hakim pengawas, harta pailit, tahapan yang sudah dilalui, dan hal yang masih berjalan. " +
       'Balas dengan JSON: {"posisi":"..."}' }]);
   }, function (j) {
-    if (!j.posisi) throw new Error("Claude tidak mengembalikan ringkasan.");
+    if (!j.posisi) throw new Error("Ringkasan tidak dihasilkan.");
     var b = baris(T("umum")), akhir = b.pop();
     S.ov.umum = b.concat([String(j.posisi).replace(/\n+/g, " "), akhir]).join("\n");
     return "Ringkasan posisi perkara ditambahkan ke bagian Umum. Periksa di langkah Naskah.";
@@ -362,16 +362,84 @@ function teksDocx(buf) {
   return Promise.reject(new Error("bukan docx"));
 }
 function kurangRuj() {
-  if (S.jenis !== "kepailitan") return [];
   var k = [], r = S.ruj || {};
+  if (!(r.st && r.st.nama)) k.push("Surat Tugas");
+  if (S.jenis !== "kepailitan") return k;
   if (!(r.urus && r.urus.nama)) k.push("Laporan Pengurusan Kepailitan terakhir");
   if (!(r.keg && r.keg.nama)) k.push("Laporan Kegiatan terakhir");
   return k;
 }
 function bolehCetak() {
   var k = kurangRuj(); if (!k.length) return true;
-  alert("Untuk laporan kepailitan, unggah lebih dahulu:\n- " + k.join("\n- "));
-  S.step = 2; simpan(); renderForm(); return false;
+  alert("Sebelum mencetak, unggah lebih dahulu:\n- " + k.join("\n- "));
+  S.step = k[0] === "Surat Tugas" ? 0 : 2; simpan(); renderForm(); return false;
+}
+/* ---------- Surat Tugas wajib: dibaca otomatis untuk mengisi formulir ---------- */
+var BLN = { januari: 1, februari: 2, maret: 3, april: 4, mei: 5, juni: 6, juli: 7, agustus: 8, september: 9, oktober: 10, november: 11, nopember: 11, desember: 12 };
+function isoTgl(d, bln, th) { var m = BLN[String(bln).toLowerCase()]; return m ? th + "-" + (m < 10 ? "0" : "") + m + "-" + (+d < 10 ? "0" : "") + (+d) : ""; }
+function bacaST(teks) {
+  var t = String(teks).replace(/\s*\|\s*/g, " ").replace(/\s+/g, " "), r = { penetapan: [], nip: [] }, m;
+  if ((m = /NOMOR\s*:?\s*(W\.\d[\w.\-]*\d)/i.exec(t))) r.nomor = m[1];
+  if ((m = /Medan,\s*(\d{1,2})\s+([A-Za-z]+)\s+(20\d{2})/.exec(t))) r.tanggal = isoTgl(m[1], m[2], m[3]);
+  var re = /Penetapan\s+(Pengadilan\s+(?:Negeri|Agama)\s+[A-Za-z .]+?)\s+Nomor\s*:?\s*([\w.\/ -]+?Pdt\.P\/\d{4}\/[A-Za-z. ]+?)\s+tanggal\s+(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s+perihal\s+penetapan\s+(\w+)\s+An\.?\s+([^;,]+?)(?=\s*(?:;|,| dan |Daftar|$))/gi, seen = {};
+  while ((m = re.exec(t))) {
+    var no = m[2].replace(/\s+/g, " ").trim(); if (seen[no]) continue; seen[no] = 1;
+    r.penetapan.push({ pn: m[1].trim(), nomor: no, tgl: isoTgl(m[3], m[4], m[5]), jenis: /ampu/i.test(m[6]) ? "pengampuan" : "perwalian", wali: m[7].trim().replace(/\s+(pada|yang)\b.*$/i, "") });
+  }
+  var u = /Untuk\s*:?\s*(?:1\.\s*)?(.{0,700}?)(?=\s*(?:2\.\s*)?Selama melaksanakan)/i.exec(t);
+  if (u) {
+    r.untuk = u[1].trim();
+    var w = /hari\s+[A-Za-z]+(?:\s+s\.?d\.?\s+[A-Za-z]+)?\s*(?:\/|,)?\s*(?:tanggal\s+)?(\d{1,2})(?:\s+([A-Za-z]+))?(?:\s+(\d{4}))?(?:\s*(?:s\.?d\.?|-|sampai dengan)\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4}))?(?:\s+([A-Za-z]+)\s+(\d{4}))?/i.exec(r.untuk);
+    if (w) {
+      var akhirBln = w[5] || w[7] || w[2], akhirTh = w[6] || w[8] || w[3];
+      if (w[4]) { r.mulai = isoTgl(w[1], w[2] || akhirBln, w[3] || akhirTh); r.selesai = isoTgl(w[4], akhirBln, akhirTh); }
+      else r.mulai = isoTgl(w[1], akhirBln, akhirTh);
+    }
+    var di = /\d{4}(?:,\s*pukul[^,;]*)?\s+di\s+([^;]+?)\s*;?$/i.exec(r.untuk); if (di) r.wilayah = di[1].trim();
+  }
+  var lamp = t.slice(Math.max(0, t.search(/LAMPIRAN|DAFTAR NAMA/i))), rn = /\b(1\d{17})\b/g;
+  while ((m = rn.exec(lamp))) if (r.nip.indexOf(m[1]) < 0) r.nip.push(m[1]);
+  return r;
+}
+function teksPdf(buf) {
+  function muat() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    return new Promise(function (ok, gagal) {
+      var sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+      sc.onload = function () { window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; ok(window.pdfjsLib); };
+      sc.onerror = function () { gagal(new Error("pembaca PDF tidak termuat")); }; document.head.appendChild(sc);
+    });
+  }
+  return muat().then(function (lib) { return lib.getDocument({ data: buf }).promise; }).then(function (doc) {
+    var hal = []; for (var i = 1; i <= doc.numPages; i++) hal.push(doc.getPage(i).then(function (p) { return p.getTextContent(); }).then(function (c) { return c.items.map(function (x) { return x.str; }).join(" "); }));
+    return Promise.all(hal).then(function (a) { return a.join("\n"); });
+  });
+}
+function unggahST(file) {
+  var buka = /\.docx$/i.test(file.name) ? file.arrayBuffer().then(teksDocx) : /\.pdf$/i.test(file.name) ? file.arrayBuffer().then(teksPdf) : Promise.resolve("");
+  buka.catch(function () { return ""; }).then(function (teks) {
+    var r = teks ? bacaST(teks) : null, isi = [];
+    S.ruj = S.ruj || {};
+    S.ruj.st = { nama: file.name, terbaca: !!(r && (r.nomor || r.penetapan.length || r.nip.length)) };
+    if (r) {
+      if (r.nomor) { S.stNomor = r.nomor; isi.push("nomor"); }
+      if (r.tanggal) { S.stTanggal = r.tanggal; isi.push("tanggal surat tugas"); }
+      if (r.mulai) { S.tglKegiatan = r.mulai; S.tglSelesai = r.selesai || ""; isi.push("tanggal kegiatan"); }
+      if (r.wilayah) { S.wilayah = r.wilayah; isi.push("wilayah"); }
+      if (r.nip.length && typeof PEGAWAI !== "undefined") {
+        var tim = r.nip.map(function (n) { var p = PEGAWAI.filter(function (x) { return x.nip === n; })[0]; return p ? { nama: p.nama, nip: p.nip, pangkat: p.pangkat, jabatan: p.jabatan } : { nama: "", nip: n, pangkat: "", jabatan: "" }; })
+          .filter(function (p) { return !/^Kepala BHP/i.test(p.jabatan); });
+        if (tim.length) { S.tim = tim; S.pj = 0; isi.push(tim.length + " pegawai"); }
+      }
+      if (r.penetapan.length && S.jenis === "penyumpahan") {
+        S.penetapan = r.penetapan.map(function (q) { var b = penetapanBaru(); b.pn = q.pn; b.nomor = q.nomor; b.tgl = q.tgl; b.jenis = q.jenis; b.wali = q.wali.replace(/\b\w+/g, function (w) { return w.charAt(0) + w.slice(1).toLowerCase(); }); return b; });
+        isi.push(r.penetapan.length + " penetapan");
+      }
+      if (r.untuk && S.jenis !== "penyumpahan" && !S.objek.trim()) S.catatanAI = (S.catatanAI ? S.catatanAI + "\n" : "") + "Tugas menurut Surat Tugas: " + r.untuk;
+    }
+    S.ruj.st.info = isi.length ? "Terisi otomatis dari Surat Tugas: " + isi.join(", ") + ". Periksa kembali." : "Isi Surat Tugas tidak terbaca otomatis (mungkin hasil pindai). Isi data secara manual.";
+    semua();
+  });
 }
 /* Petik bagian laporan kegiatan terakhir supaya isi laporan baru bersambung */
 var _rk = { kunci: "", hasil: null };
@@ -634,7 +702,12 @@ function ovArea(label, k, hint, tall) {
 function renderForm() {
   var h = "", peny = S.jenis === "penyumpahan";
   h += '<div class="card"><h2>1. Jenis Kegiatan</h2>' + sel("Jenis kegiatan (tusi)", "jenis", JENIS, true) +
-    '<label class="chk"><input type="checkbox" data-k="sampul"' + (S.sampul ? " checked" : "") + "> Sertakan halaman sampul</label></div>";
+    '<label class="chk"><input type="checkbox" data-k="sampul"' + (S.sampul ? " checked" : "") + "> Sertakan halaman sampul</label>";
+  var rst = (S.ruj || {}).st;
+  h += '<div class="item ' + (rst && rst.nama ? (rst.terbaca ? "ok" : "warn") : "bad") + '"><h3>Surat Tugas <span class="tag' + (rst && rst.nama ? "" : " man") + '">' + (rst && rst.nama ? "sudah diunggah" : "wajib") + "</span></h3>" +
+    '<p class="hint">Unggah Surat Tugas kegiatan ini (.docx atau .pdf). Nomor, tanggal, penetapan, wilayah, dan tim diisi otomatis darinya. Langkah lain tetap bisa dibuka, tetapi laporan baru bisa dicetak setelah Surat Tugas diunggah.</p>' +
+    '<input type="file" accept=".docx,.pdf" id="fileST" style="margin-top:8px">' +
+    (rst && rst.nama ? '<p class="hint"><b>' + esc(rst.nama) + "</b> — " + esc(rst.info || "") + "</p>" : "") + "</div></div>";
 
   h += '<div class="card"><h2>2. Waktu dan Surat Tugas</h2><div class="row">' + inp("Tanggal kegiatan (mulai)", "tglKegiatan", "date", "data-re") + inp("Tanggal selesai (kosong = 1 hari)", "tglSelesai", "date", "data-re") + "</div>" +
     '<div class="row">' + inp("Wilayah kegiatan (untuk Surat Tugas)", "wilayah", "text", 'placeholder="Kota Medan"') + inp("Tanggal laporan (kosong = hari terakhir)", "tglLaporan", "date") + "</div>" +
@@ -709,13 +782,13 @@ function renderForm() {
   });
   h += "</div>";
 
-  var tb = function (act, nama, label) { return '<button class="pri" data-act="' + act + '"' + (ai.sibuk ? " disabled" : "") + ">" + (ai.sibuk === nama ? "Claude sedang bekerja…" : label) + "</button>"; };
-  h += '<div class="card"><h2>AI. Bantuan Claude (khusus admin)</h2>' +
-    '<p class="hint">Claude membaca foto dan data laporan ini lalu mengisi bagian yang masih kosong. Data dan foto dikirim ke layanan Claude (Anthropic) melalui server aplikasi hanya saat tombol ditekan. Kunci API tersimpan di server, tidak di perangkat ini.</p>' +
-    area("Catatan lapangan untuk Claude (opsional)", "catatanAI", "Tulis bebas: siapa yang ditemui, apa yang terjadi, kendala, hal yang perlu ditonjolkan…") +
-    '<div class="item"><h3>1. Baca foto, susun kronologi</h3><p class="hint">Claude membaca cap waktu dan alamat pada foto Timemark, mengurutkan, lalu menulis lokasi, uraian, dan keterangan foto.</p><div style="margin-top:8px">' + tb("aiFoto", "foto", "Baca " + S.krono.filter(function (k) { return k.foto; }).length + " foto") + "</div></div>" +
-    '<div class="item"><h3>2. Tulis Hasil, Simpulan, dan Saran</h3><p class="hint">Disusun dari kronologi dan data penetapan. Jalankan setelah kronologi terisi.</p><div style="margin-top:8px">' + tb("aiNaskah", "naskah", "Tulis dengan Claude") + "</div></div>" +
-    (S.jenis === "kepailitan" && S.ruj && S.ruj.urus && S.ruj.urus.teks ? '<div class="item"><h3>3. Ringkas posisi terakhir perkara</h3><p class="hint">Dari Laporan Pengurusan Kepailitan yang diunggah, masuk ke bagian Umum.</p><div style="margin-top:8px">' + tb("aiPosisi", "posisi", "Ringkas dengan Claude") + "</div></div>" : "") +
+  var tb = function (act, nama, label) { return '<button class="pri" data-act="' + act + '"' + (ai.sibuk ? " disabled" : "") + ">" + (ai.sibuk === nama ? "Sedang memproses…" : label) + "</button>"; };
+  h += '<div class="card"><h2>AI. Penyusunan Otomatis</h2>' +
+    '<details class="hint"><summary style="cursor:pointer">Penjelasan</summary><p class="hint">Fitur ini memakai AI (Claude, Anthropic) untuk membaca foto dan data laporan, lalu mengisi bagian yang masih kosong. Data dan foto dikirim ke layanan Claude melalui server aplikasi hanya saat tombol ditekan. Kunci API tersimpan di server, tidak di perangkat ini. Hasilnya tetap harus diperiksa.</p></details>' +
+    area("Catatan lapangan (opsional)", "catatanAI", "Tulis bebas: siapa yang ditemui, apa yang terjadi, kendala, hal yang perlu ditonjolkan…") +
+    '<div class="item"><h3>1. Baca foto, susun kronologi</h3><p class="hint">Membaca cap waktu dan alamat pada foto Timemark, mengurutkan, lalu menulis lokasi, uraian, dan keterangan foto.</p><div style="margin-top:8px">' + tb("aiFoto", "foto", "Baca " + S.krono.filter(function (k) { return k.foto; }).length + " foto") + "</div></div>" +
+    '<div class="item"><h3>2. Tulis Hasil, Simpulan, dan Saran</h3><p class="hint">Disusun dari kronologi dan data penetapan. Jalankan setelah kronologi terisi.</p><div style="margin-top:8px">' + tb("aiNaskah", "naskah", "Susun otomatis") + "</div></div>" +
+    (S.jenis === "kepailitan" && S.ruj && S.ruj.urus && S.ruj.urus.teks ? '<div class="item"><h3>3. Ringkas posisi terakhir perkara</h3><p class="hint">Dari Laporan Pengurusan Kepailitan yang diunggah, masuk ke bagian Umum.</p><div style="margin-top:8px">' + tb("aiPosisi", "posisi", "Ringkas otomatis") + "</div></div>" : "") +
     (ai.pesan ? '<p class="hint" style="font-size:13.5px;color:' + (ai.galat ? "var(--bad)" : "var(--ok)") + '" role="status"><b>' + esc(ai.pesan) + "</b></p>" : "") + "</div>";
 
   h += '<div class="card"><h2>6. Naskah Laporan</h2><p class="hint">Disusun otomatis dari isian di atas. Mengetik di kotak mana pun menjadikannya manual (tidak lagi mengikuti isian).</p>' +
@@ -724,10 +797,10 @@ function renderForm() {
 
   if (!isAdmin() && +S.step === 4) S.step = 5;
   var st = Math.max(0, Math.min(5, +S.step || 0)), peta = S.jenis === "kepailitan" ? [0, 0, 1, 2, 2, 3, 4, 5] : [0, 0, 1, 2, 3, 4, 5];
-  var nama = ["Kegiatan", "Tim", peny ? "Penetapan" : "Objek", "Kronologi", "AI", "Naskah"];
+  var nama = ["Kegiatan", "Tim", peny ? "Penetapan" : "Objek", "Kronologi", "Otomatis", "Naskah"];
   var lead = ["Pilih jenis kegiatan, lalu isi tanggal dan surat tugas.", "Isi tim sekali saja — tersimpan untuk laporan berikutnya.",
     peny ? "Satu kartu per penetapan. Pilih hasilnya; kalimat laporan tersusun sendiri." : "Tulis judul dan dasar kegiatan.",
-    "Catat jam, lokasi, dan foto tiap tahap kegiatan.", "Biarkan Claude membaca foto dan menulis bagian yang kosong.", "Periksa naskah. Tulisan merah di pratinjau berarti masih kosong."];
+    "Catat jam, lokasi, dan foto tiap tahap kegiatan.", "Baca foto dan susun bagian yang masih kosong secara otomatis.", "Periksa naskah. Tulisan merah di pratinjau berarti masih kosong."];
   var vis = [0, 1, 2, 3, 4, 5].filter(function (i) { return i !== 4 || isAdmin(); });
   var prev = vis[vis.indexOf(st) - 1], next = vis[vis.indexOf(st) + 1];
   var nav = '<div class="steps">' + vis.map(function (i) { var n = nama[i]; return '<button class="step' + (i === st ? " on" : i < st ? " done" : "") + '" data-act="step" data-i="' + i + '"' + (i === st ? ' aria-current="step"' : "") + '><span class="n">' + (vis.indexOf(i) + 1) + '</span><span class="l">' + n + "</span></button>"; }).join("") + "</div>" +
@@ -737,7 +810,7 @@ function renderForm() {
   var el = document.getElementById("form");
   el.innerHTML = nav + h.replace(/<h2>(\d+|AI)\. /g, "<h2>") + foot;
   Array.prototype.forEach.call(el.querySelectorAll(".card"), function (c, i) { if (peta[i] !== st) c.style.display = "none"; });
-  if (!isAdmin()) Array.prototype.forEach.call(el.querySelectorAll(".card"), function (c) { if (/Bantuan Claude/.test(c.querySelector("h2").textContent)) c.remove(); });
+  if (!isAdmin()) Array.prototype.forEach.call(el.querySelectorAll(".card"), function (c) { if (/Penyusunan Otomatis/.test(c.querySelector("h2").textContent)) c.remove(); });
 }
 
 /* =====================================================================
@@ -917,6 +990,7 @@ form.addEventListener("change", function (e) {
     return;
   }
   if (el.id === "fotoBanyak") { unggahBanyak(el.files); return; }
+  if (el.id === "fileST" && el.files[0]) { unggahST(el.files[0]); return; }
   if (el.hasAttribute("data-ruj") && el.files[0]) { unggahRuj(el.getAttribute("data-ruj"), el.files[0]); return; }
   if (el.hasAttribute("data-foto") && el.files[0]) {
     var i = +el.getAttribute("data-foto");

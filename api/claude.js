@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   }
   if (body.cek) return res.status(200).json({ ok: true, siap: !!process.env.ANTHROPIC_API_KEY });
   if (!process.env.ANTHROPIC_API_KEY)
-    return res.status(503).json({ galat: "Kunci API Claude belum dipasang di Vercel (ANTHROPIC_API_KEY)." });
+    return res.status(503).json({ galat: "Kunci API belum dipasang di Vercel (ANTHROPIC_API_KEY)." });
   if (!Array.isArray(body.content) || !body.content.length)
     return res.status(400).json({ galat: "Isi permintaan kosong." });
 
@@ -47,13 +47,13 @@ export default async function handler(req, res) {
     return res.status(200).json({ stop_reason: r.stop_reason, text });
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError)
-      return res.status(502).json({ galat: "Kunci API Claude di Vercel ditolak. Periksa ANTHROPIC_API_KEY." });
+      return res.status(502).json({ galat: "Kunci API di Vercel ditolak. Periksa ANTHROPIC_API_KEY." });
     if (e instanceof Anthropic.RateLimitError)
       return res.status(429).json({ galat: "Batas pemakaian tercapai. Coba lagi sebentar lagi." });
     if (e instanceof Anthropic.BadRequestError)
       return res.status(400).json({ galat: "Permintaan ditolak: " + e.message });
     if (e instanceof Anthropic.APIError)
-      return res.status(502).json({ galat: "Layanan Claude sedang bermasalah (" + e.status + "). Coba lagi nanti." });
+      return res.status(502).json({ galat: "Layanan sedang bermasalah (" + e.status + "). Coba lagi nanti." });
     return res.status(500).json({ galat: "Galat server: " + (e && e.message) });
   }
 }
