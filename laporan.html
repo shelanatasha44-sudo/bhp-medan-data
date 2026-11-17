@@ -81,6 +81,14 @@ textarea.tall { min-height: 170px; }
 .preview { position: sticky; top: 14px; max-height: calc(100vh - 28px); overflow: auto; padding: 18px; border-radius: 16px; background: linear-gradient(180deg, #1a2752, var(--navy-2)); box-shadow: inset 0 0 0 1px rgba(217,189,122,.35), 0 10px 30px rgba(10,18,48,.25); }
 .preview::before { content: "PRATINJAU DOKUMEN"; display: block; text-align: center; font-size: 10.5px; letter-spacing: .28em; color: var(--gold-2); font-weight: 600; margin-bottom: 14px; }
 
+/* ---- bagian yang bisa dilipat ---- */
+.lipat { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
+.lipat > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--gold-3); list-style: none; }
+.lipat > summary::before { content: "▸ "; }
+.lipat[open] > summary::before { content: "▾ "; }
+.ringkas { margin: 4px 0 0; padding: 10px 12px; background: var(--faint); border: 1px solid var(--line); border-radius: 10px; font-size: 14px; line-height: 1.6; }
+.ringkas b { color: var(--navy); }
+
 /* ---- layar masuk ---- */
 .masuk { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; overflow: auto;
   background: radial-gradient(900px 500px at 20% 0%, #23326b 0%, transparent 60%), linear-gradient(180deg, var(--navy), var(--navy-2)); }
@@ -749,6 +757,11 @@ function ovArea(label, k, hint, tall) {
     '<textarea class="' + (tall ? "tall" : "") + '" data-ov="' + k + '">' + esc(T(k)) + "</textarea>" + (hint ? '<p class="hint">' + hint + "</p>" : "");
 }
 
+var BUKA = {};
+function lipat(id, judul, isi, buka) {
+  var o = BUKA[id] != null ? BUKA[id] : !!buka;
+  return '<details class="lipat" data-lipat="' + id + '"' + (o ? " open" : "") + "><summary>" + judul + "</summary>" + isi + "</details>";
+}
 function renderForm() {
   var h = "", peny = S.jenis === "penyumpahan";
   h += '<div class="card"><h2>1. Jenis Kegiatan</h2>' + sel("Jenis kegiatan (tusi)", "jenis", JENIS, true) +
@@ -759,41 +772,53 @@ function renderForm() {
     '<input type="file" accept=".docx,.pdf" id="fileST" style="margin-top:8px">' +
     (rst && rst.nama ? '<p class="hint"><b>' + esc(rst.nama) + "</b> — " + esc(rst.info || "") + "</p>" : "") + "</div></div>";
 
-  h += '<div class="card"><h2>2. Waktu dan Surat Tugas</h2><div class="row">' + inp("Tanggal kegiatan (mulai)", "tglKegiatan", "date", "data-re") + inp("Tanggal selesai (kosong = 1 hari)", "tglSelesai", "date", "data-re") + "</div>" +
+  var isiWaktu = '<div class="row">' + inp("Tanggal kegiatan (mulai)", "tglKegiatan", "date", "data-re") + inp("Tanggal selesai (kosong = 1 hari)", "tglSelesai", "date", "data-re") + "</div>" +
     '<div class="row">' + inp("Wilayah kegiatan (untuk Surat Tugas)", "wilayah", "text", 'placeholder="Kota Medan"') + inp("Tanggal laporan (kosong = hari terakhir)", "tglLaporan", "date") + "</div>" +
-    '<div class="row">' + inp("Nomor Surat Tugas", "stNomor", "text", 'placeholder="W.2.AHU.AHU.1-AH.06.02-…"') + inp("Tanggal Surat Tugas", "stTanggal", "date") + "</div>" +
+    '<div class="row">' + inp("Nomor Surat Tugas", "stNomor", "text", 'placeholder="W.2.AHU.AHU.1-AH.06.02-…"') + inp("Tanggal Surat Tugas", "stTanggal", "date") + "</div>";
+  var dariST = rst && rst.terbaca && S.stNomor && S.tglKegiatan;
+  h += '<div class="card"><h2>2. Waktu dan Surat Tugas</h2>' +
+    (dariST ? '<div class="ringkas"><b>Surat Tugas</b> ' + esc(S.stNomor) + " tanggal " + esc(tgl(S.stTanggal)) + "<br><b>Kegiatan</b> " + esc(waktuTxt(", ")) + "<br><b>Wilayah</b> " + esc(S.wilayah || "—") + "</div>" + lipat("waktu", "Ubah data", isiWaktu, false) : isiWaktu) +
     '<p class="hint">DIPA otomatis: <b>' + esc(dipa().nomor || "belum tercatat untuk tahun ini") + "</b>" + (dipa().tanggal ? " tanggal " + esc(tgl(dipa().tanggal)) : "") + ". Diubah sekali setahun di templates/naskah.js.</p></div>";
 
-  h += '<div class="card"><h2>3. Tim Pelaksana <button class="sm" data-act="addTim">+ Tambah</button></h2><p class="hint">Tersimpan untuk laporan berikutnya.</p>';
+  var hTim = "";
   S.tim.forEach(function (_, i) {
     var k = "tim." + i + ".";
     var daftar = typeof PEGAWAI !== "undefined" ? PEGAWAI : [];
     var pilih = daftar.length ? '<div><label>Pilih dari daftar pegawai</label><select data-peg="' + i + '"><option value="">— ketik manual / pilih —</option>' +
       daftar.map(function (p, j) { return '<option value="' + j + '"' + (p.nip === S.tim[i].nip ? " selected" : "") + ">" + esc(p.nama) + " — " + esc(p.jabatan) + "</option>"; }).join("") + "</select></div>" : "";
-    h += '<div class="item"><h3>Pegawai ' + (i + 1) + '<span class="b"><label class="chk" style="margin:0;font-size:12.5px"><input type="radio" name="pj" data-pj="' + i + '"' + (+S.pj === i ? " checked" : "") + '> Penanggung jawab</label>' +
+    hTim += '<div class="item"><h3>Pegawai ' + (i + 1) + '<span class="b"><label class="chk" style="margin:0;font-size:12.5px"><input type="radio" name="pj" data-pj="' + i + '"' + (+S.pj === i ? " checked" : "") + '> Penanggung jawab</label>' +
       '<button class="sm del" data-act="delTim" data-i="' + i + '"' + (S.tim.length < 2 ? " disabled" : "") + ">Hapus</button></span></h3>" +
       pilih + '<div class="row">' + inp("Nama", k + "nama") + inp("NIP", k + "nip") + "</div><div class=\"row\">" + inp("Pangkat / Gol.", k + "pangkat", "text", 'placeholder="Penata Tk. I (III/d)"') + inp("Jabatan", k + "jabatan") + "</div></div>";
   });
-  h += inp("Kepala Balai Harta Peninggalan Medan (mengetahui)", "kepala") + "</div>";
+  hTim += '<div style="margin-top:10px"><button class="sm" data-act="addTim">+ Tambah pegawai</button></div>' + inp("Kepala Balai Harta Peninggalan Medan (mengetahui)", "kepala");
+  var timLengkap = S.tim.every(function (t) { return t.nama.trim() && t.jabatan.trim(); });
+  h += '<div class="card"><h2>3. Tim Pelaksana</h2>' +
+    (timLengkap ? '<div class="ringkas">' + S.tim.map(function (t, i) { return (i + 1) + ". <b>" + esc(t.nama) + "</b> — " + esc(t.jabatan) + (+S.pj === i ? " <i>(penanggung jawab)</i>" : ""); }).join("<br>") +
+      "<br><span class=\"hint\">Mengetahui: " + esc(S.kepala || "—") + "</span></div>" + lipat("tim", "Ubah tim", hTim, false) : '<p class="hint">Pilih nama dari daftar; tersimpan untuk laporan berikutnya.</p>' + hTim) + "</div>";
 
   if (peny) {
     h += '<div class="card"><h2>4. Penetapan</h2><div class="count"><label style="margin:0">Jumlah penetapan</label><input type="number" min="1" max="30" id="nPen" value="' + S.penetapan.length + '"><button class="sm" data-act="addPen">+ Tambah</button></div>';
     S.penetapan.forEach(function (p, i) {
       var k = "penetapan." + i + ".", hs = hasilOf(p.hasil), t = ist(p), w = t.W.toLowerCase();
-      h += '<div class="item ' + hs.cls + '"><h3>Penetapan ' + (i + 1) + '<button class="sm del" data-act="delPen" data-i="' + i + '"' + (S.penetapan.length < 2 ? " disabled" : "") + ">Hapus</button></h3>" +
-        '<div class="row">' + sel("Jenis perkara", k + "jenis", [{ id: "perwalian", label: "Perwalian (wali)" }, { id: "pengampuan", label: "Pengampuan (pengampu)" }], true) + inp("Pengadilan", k + "pn", "text", 'placeholder="Pengadilan Negeri Lubuk Pakam"') + "</div>" +
-        '<div class="row">' + inp("Nomor penetapan", k + "nomor", "text", 'placeholder="323/Pdt.P/2025/PN Lbp"') + inp("Tanggal penetapan", k + "tgl", "date") + "</div>" +
-        '<div class="row">' + inp("Nama " + w, k + "wali") + inp("Nama " + t.a, k + "anak") + "</div>" +
-        '<div class="row">' + inp(t.a.charAt(0).toUpperCase() + t.a.slice(1) + " adalah … dari " + w, k + "hubungan", "text", 'placeholder="anak kandung / keponakan"') + inp("Alamat " + w, k + "alamat") + "</div>" +
-        area("Latar belakang singkat (opsional, masuk ke bagian Umum)", k + "latar", "mis. tempat/tanggal lahir anak, keperluan perwalian, objek harta") +
-        sel("Hasil pelaksanaan", k + "hasil", HASIL, true);
+      var dataPen = '<div class="row">' + sel("Jenis perkara", k + "jenis", [{ id: "perwalian", label: "Perwalian (wali)" }, { id: "pengampuan", label: "Pengampuan (pengampu)" }], true) + inp("Pengadilan", k + "pn", "text", 'placeholder="Pengadilan Negeri Lubuk Pakam"') + "</div>" +
+        '<div class="row">' + inp("Nomor penetapan", k + "nomor", "text", 'placeholder="323/Pdt.P/2025/PN Lbp"') + inp("Tanggal penetapan", k + "tgl", "date") + "</div>" + inp("Nama " + w, k + "wali");
+      var judulPen = p.wali.trim() ? esc(t.W) + " an. " + esc(p.wali.trim()) : "Penetapan " + (i + 1);
+      h += '<div class="item ' + hs.cls + '"><h3>' + judulPen + '<button class="sm del" data-act="delPen" data-i="' + i + '"' + (S.penetapan.length < 2 ? " disabled" : "") + ">Hapus</button></h3>" +
+        (p.nomor.trim() ? '<p class="hint" style="margin:2px 0 0">' + esc(p.pn) + " Nomor " + esc(p.nomor) + (p.tgl ? " tanggal " + esc(tgl(p.tgl)) : "") + "</p>" + lipat("pen" + i, "Ubah data penetapan", dataPen, false) : dataPen) +
+        inp("Nama " + t.a, k + "anak") +
+        sel("Hasil pelaksanaan", k + "hasil", HASIL, true) +
+        (p.hasil === "gagal_tidak_ditemui" ? inp("Alamat " + w, k + "alamat") : "");
       if (hs.sub) {
         h += sel("Rincian alasan", k + "sub", [{ id: "", label: "— tidak dirinci —" }].concat(hs.sub.map(function (s) { return { id: s, label: s }; }), [{ id: "__lain", label: "Alasan lain…" }]), true);
         if (p.sub === "__lain") h += inp("Tulis alasan", k + "subLain");
       } else if (hs.grup === "Ditunda") { p.sub = "__lain"; h += inp("Alasan penundaan (opsional)", k + "subLain"); }
       if (hs.sukses) h += (multi() ? '<div class="row">' + inp("Nomor " + t.ba, k + "ba", "text", 'placeholder="W.2.AHU.AHU.1-AH.06.03-…"') + inp("Tanggal sumpah", k + "tglSumpah", "date", 'min="' + S.tglKegiatan + '" max="' + S.tglSelesai + '"') + "</div>" : inp("Nomor " + t.ba, k + "ba", "text", 'placeholder="W.2.AHU.AHU.1-AH.06.03-…"')) +
-        '<div class="row">' + sel("Disumpah menurut agama", k + "agama", AGAMA) + inp("Saksi (opsional)", k + "saksi", "text", 'placeholder="nama dan jabatan saksi"') + "</div>";
+        "";
       if (hs.pnbp) h += inp("Uraian harta yang dicatat", k + "harta", "text", 'placeholder="sebidang tanah dan bangunan seluas ± 140 m² di …"') + '<div class="row">' + inp("Nilai harta (Rp)", k + "nilai", "text", 'inputmode="numeric"') + inp("PNBP (Rp)", k + "pnbp", "text", 'inputmode="numeric"') + "</div>";
+      h += lipat("tam" + i, "Rincian tambahan (opsional)",
+        '<div class="row">' + inp(t.a.charAt(0).toUpperCase() + t.a.slice(1) + " adalah … dari " + w, k + "hubungan", "text", 'placeholder="anak kandung / keponakan"') + (p.hasil === "gagal_tidak_ditemui" ? "<div></div>" : inp("Alamat " + w, k + "alamat")) + "</div>" +
+        (hs.sukses ? '<div class="row">' + sel("Disumpah menurut agama", k + "agama", AGAMA) + inp("Saksi", k + "saksi", "text", 'placeholder="nama dan jabatan saksi"') + "</div>" : "") +
+        area("Latar belakang singkat (masuk ke bagian Umum)", k + "latar", "mis. tempat/tanggal lahir anak, keperluan perwalian, objek harta"), false);
       h += "</div>";
     });
     h += "</div>";
@@ -823,12 +848,11 @@ function renderForm() {
     var k = "krono." + i + ".";
     h += '<div class="item' + (kr.src === "berkas" ? " warn" : "") + '"><h3>Butir ' + (i + 1) + (kr.src === "berkas" ? ' <span class="tag man">periksa jam</span>' : "") + '<span class="b"><button class="sm" data-act="upKr" data-i="' + i + '"' + (i ? "" : " disabled") + '>↑</button><button class="sm" data-act="dnKr" data-i="' + i + '"' + (i < S.krono.length - 1 ? "" : " disabled") + '>↓</button>' +
       '<button class="sm del" data-act="delKr" data-i="' + i + '"' + (S.krono.length < 2 ? " disabled" : "") + ">Hapus</button></span></h3>" +
-      inp("Sub-judul kelompok (opsional)", k + "grup", "text", 'placeholder="mis. Penyumpahan Wali an. …"') +
-      (multi() ? inp("Tanggal butir ini", k + "tgl", "date", 'min="' + S.tglKegiatan + '" max="' + S.tglSelesai + '"') : "") +
-      '<div class="row">' + inp("Pukul", k + "jam", "time") + inp("s.d. (opsional)", k + "jam2", "time") + "</div>" + inp("Lokasi", k + "lokasi") +
+      '<div class="row">' + (multi() ? inp("Tanggal", k + "tgl", "date", 'min="' + S.tglKegiatan + '" max="' + S.tglSelesai + '"') : "") + inp("Pukul", k + "jam", "time") + (multi() ? "" : inp("Lokasi", k + "lokasi")) + "</div>" + (multi() ? inp("Lokasi", k + "lokasi") : "") +
       area("Uraian (setelah “Pada pukul … WIB,”)", k + "uraian", "Tim tiba di …") +
       '<label>Foto dokumentasi</label><input type="file" accept="image/*" data-foto="' + i + '">' +
-      (kr.foto ? '<img class="thumb" src="' + kr.foto + '" alt=""><div class="row" style="align-items:end">' + inp("Keterangan foto", k + "ket") + '<button class="sm del" data-act="delFoto" data-i="' + i + '">Hapus foto</button></div>' : "") + "</div>";
+      (kr.foto ? '<img class="thumb" src="' + kr.foto + '" alt=""><div class="row" style="align-items:end">' + inp("Keterangan foto", k + "ket") + '<button class="sm del" data-act="delFoto" data-i="' + i + '">Hapus foto</button></div>' : "") +
+      lipat("kr" + i, "Lainnya (opsional)", '<div class="row">' + inp("Selesai pukul", k + "jam2", "time") + inp("Sub-judul kelompok", k + "grup", "text", 'placeholder="mis. Penyumpahan Wali an. …"') + "</div>", false) + "</div>";
   });
   h += "</div>";
 
@@ -841,16 +865,16 @@ function renderForm() {
     (S.jenis === "kepailitan" && S.ruj && S.ruj.urus && S.ruj.urus.teks ? '<div class="item"><h3>3. Ringkas posisi terakhir perkara</h3><p class="hint">Dari Laporan Pengurusan Kepailitan yang diunggah, masuk ke bagian Umum.</p><div style="margin-top:8px">' + tb("aiPosisi", "posisi", "Ringkas otomatis") + "</div></div>" : "") +
     (ai.pesan ? '<p class="hint" style="font-size:13.5px;color:' + (ai.galat ? "var(--bad)" : "var(--ok)") + '" role="status"><b>' + esc(ai.pesan) + "</b></p>" : "") + "</div>";
 
-  h += '<div class="card"><h2>6. Naskah Laporan</h2><p class="hint">Disusun otomatis dari isian di atas. Mengetik di kotak mana pun menjadikannya manual (tidak lagi mengikuti isian).</p>' +
-    ovArea("A.1 Umum", "umum", "Satu paragraf per baris.", true) + ovArea("A.2 Maksud dan Tujuan", "maksud", "Satu butir per baris.") + ovArea("A.4 Dasar", "dasar", "Satu butir per baris.") +
-    ovArea("C. Hasil yang Dicapai", "hasil", "Satu butir per baris.") + ovArea("D.1 Simpulan", "simpulan") + ovArea("D.2 Saran", "saran") + "</div>";
+  h += '<div class="card"><h2>6. Naskah Laporan</h2><p class="hint">Naskah sudah tersusun otomatis dari isian sebelumnya; lihat hasilnya di pratinjau. Bila sudah sesuai, langsung Cetak / Simpan PDF.</p>' +
+    lipat("naskah", "Sunting naskah (opsional)", '<p class="hint">Mengetik di kotak mana pun menjadikannya manual (tidak lagi mengikuti isian).</p>' + ovArea("A.1 Umum", "umum", "Satu paragraf per baris.", true) + ovArea("A.2 Maksud dan Tujuan", "maksud", "Satu butir per baris.") + ovArea("A.4 Dasar", "dasar", "Satu butir per baris.") +
+    ovArea("C. Hasil yang Dicapai", "hasil", "Satu butir per baris.") + ovArea("D.1 Simpulan", "simpulan") + ovArea("D.2 Saran", "saran"), false) + "</div>";
 
   if (!isAdmin() && +S.step === 4) S.step = 5;
   var st = Math.max(0, Math.min(5, +S.step || 0)), peta = S.jenis === "kepailitan" ? [0, 0, 1, 2, 2, 3, 4, 5] : [0, 0, 1, 2, 3, 4, 5];
   var nama = ["Kegiatan", "Tim", peny ? "Penetapan" : "Objek", "Kronologi", "Otomatis", "Naskah"];
   var lead = ["Pilih jenis kegiatan, lalu isi tanggal dan surat tugas.", "Isi tim sekali saja — tersimpan untuk laporan berikutnya.",
     peny ? "Satu kartu per penetapan. Pilih hasilnya; kalimat laporan tersusun sendiri." : "Tulis judul dan dasar kegiatan.",
-    "Catat jam, lokasi, dan foto tiap tahap kegiatan.", "Baca foto dan susun bagian yang masih kosong secara otomatis.", "Periksa naskah. Tulisan merah di pratinjau berarti masih kosong."];
+    "Unggah semua foto sekaligus; urutan dan jam tersusun sendiri. Tinggal tulis uraian singkat.", "Baca foto dan susun bagian yang masih kosong secara otomatis.", "Periksa naskah. Tulisan merah di pratinjau berarti masih kosong."];
   var vis = [0, 1, 2, 3, 4, 5].filter(function (i) { return i !== 4 || isAdmin(); });
   var prev = vis[vis.indexOf(st) - 1], next = vis[vis.indexOf(st) + 1];
   var nav = '<div class="steps">' + vis.map(function (i) { var n = nama[i]; return '<button class="step' + (i === st ? " on" : i < st ? " done" : "") + '" data-act="step" data-i="' + i + '"' + (i === st ? ' aria-current="step"' : "") + '><span class="n">' + (vis.indexOf(i) + 1) + '</span><span class="l">' + n + "</span></button>"; }).join("") + "</div>" +
@@ -1023,6 +1047,7 @@ form.addEventListener("input", function (e) {
   if (el.hasAttribute("data-re")) renderForm();
   renderPaper();
 });
+form.addEventListener("toggle", function (e) { var d = e.target; if (d.getAttribute && d.getAttribute("data-lipat")) BUKA[d.getAttribute("data-lipat")] = d.open; }, true);
 form.addEventListener("change", function (e) {
   var el = e.target;
   if (el.id === "nPen") {
