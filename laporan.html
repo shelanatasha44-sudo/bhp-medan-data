@@ -1088,7 +1088,7 @@ function renderForm() {
    ===================================================================== */
 function P(indent, html, extra) { return '<p style="margin-left:' + indent + "cm;" + (extra || "") + '">' + html + "</p>"; }
 function LI(indent, mark, text) { return '<p style="margin-left:' + indent + "cm;text-indent:-0.75cm\">" + mark + '<span style="display:inline-block;width:' + (0.75 - 0.2 * mark.length).toFixed(2) + 'cm"></span>' + R(text) + "</p>"; }
-function Hd(indent, mark, text) { return '<p style="margin-left:' + indent + 'cm;text-indent:-0.75cm;margin-top:8pt;text-align:left"><b>' + mark + '<span style="display:inline-block;width:' + (0.75 - 0.2 * mark.length).toFixed(2) + 'cm"></span>' + esc(text) + "</b></p>"; }
+function Hd(indent, mark, text) { if (indent === 0.75) text = String(text).toUpperCase(); return '<p style="margin-left:' + indent + 'cm;text-indent:-0.75cm;margin-top:8pt;text-align:left"><b>' + mark + '<span style="display:inline-block;width:' + (0.75 - 0.2 * mark.length).toFixed(2) + 'cm"></span>' + esc(text) + "</b></p>"; }
 function abc(i) { return String.fromCharCode(97 + i) + "."; }
 var PB = '<div class="pb"></div><br clear="all" style="page-break-before:always;mso-break-type:section-break">';
 
