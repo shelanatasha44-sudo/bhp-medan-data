@@ -473,10 +473,10 @@ function toggleSuara() {
   aturTombolSuara();
 }
 function kartuBerkas() {
-  return '<div class="item" style="border-left-color:var(--navy);margin-bottom:12px"><h3>Berkas FULL / Berita Acara <span class="tag">opsional</span></h3>' +
-    '<p class="hint">Unggah berkas FULL Perwalian/Pengampu (BA Sumpah, BA Penghadapan, BA Harta), boleh beberapa sekaligus. Nama anak, hubungan, alamat, agama, nomor BA, tanggal sumpah, keterangan, dan harta terisi sendiri.</p>' +
+  return '<div class="item" style="border-left-color:var(--navy);margin-bottom:12px"><h3>Draft BA Penghadapan <span class="tag">opsional</span></h3>' +
+    '<p class="hint">Unggah draft Word Berita Acara Penghadapan tiap wali/pengampu (boleh beberapa sekaligus). Nama anak/terampu, hubungan, alamat, agama, tanggal, dan keterangan terisi sendiri.</p>' +
     (S.infoBerkas ? '<p class="hint" style="white-space:pre-line;color:var(--ok)"><b>' + esc(S.infoBerkas) + "</b></p>" : "") +
-    '<label class="unggah"><input type="file" accept=".docx,.pdf" multiple id="fileBerkas">📎 Pilih Berkas FULL</label></div>';
+    '<label class="unggah"><input type="file" accept=".docx,.pdf" multiple id="fileBerkas">📎 Pilih BA Penghadapan</label></div>';
 }
 function kartuCerita() {
   return '<div class="item" style="border-left-color:var(--navy)"><h3>Ceritakan kegiatan</h3>' +
@@ -652,15 +652,20 @@ function bacaBerkas(teks) {
   if ((m = /Penetapan\s+(Pengadilan\s+(?:Negeri|Agama)\s+[A-Za-z .]+?)\s+Nomor\s*:\s*([\w.\/-]+Pdt\.P\/\d{4}\/[A-Za-z.]+(?:\s?[A-Z][a-z]+)?)\s+tanggal\s+(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/.exec(t))) {
     r.pn = m[1].trim(); r.nomor = m[2].trim(); r.tgl = isoTgl(m[3], m[4], m[5]);
   }
-  if (!r.nomor) return null;
-  r.jenis = /diangkat menjadi\s+\**PENGAMPU/i.test(t) || /PENYUMPAHAN PENGAMPUAN/i.test(t) ? "pengampuan" : "perwalian";
-  if ((m = /yaitu\s+\**([A-Z][A-Za-z .,'’-]+?)\**,\s*(Laki-laki|Perempuan)/.exec(t))) r.wali = m[1].trim();
-  m = t.match(/agama\s+(Islam|Kristen(?: Protestan)?|Protestan|Katolik|Katholik|Hindu|Budha|Buddha|Konghucu)/i);
+  if (!r.nomor && (m = /Nomor\s*:?\s*([\w.\/-]+Pdt\.P\/\d{4}\/[A-Za-z.]+(?:\s?[A-Z][a-z]+)?)/.exec(t))) r.nomor = m[1].trim();
+  r.jenis = /diangkat menjadi\s+\**PENGAMPU/i.test(t) || /PENYUMPAHAN PENGAMPUAN|pengampuan atas|atas Terampu/i.test(t) ? "pengampuan" : "perwalian";
+  if ((m = /yaitu\s+\**([A-Z][A-Za-z .,'’-]+?)\**,\s*(Laki-laki|Perempuan)/.exec(t)) || (m = /\bNama\s*:\s*\**([A-Z][A-Za-z .,'’-]+?)\**\s+Tanggal Lahir/.exec(t))) r.wali = m[1].trim();
+  if (!r.wali) return null;
+  m = t.match(/agama\s*:?\s+(Islam|Kristen(?: Protestan)?|Protestan|Katolik|Katholik|Hindu|Budha|Buddha|Konghucu)/i);
   if (m) r.agama = { protestan: "Kristen", "kristen protestan": "Kristen", katholik: "Katolik", budha: "Buddha" }[m[1].toLowerCase()] || m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
-  if ((m = /alamat\s+(.+?),\s+yang berdasarkan Penetapan/.exec(t))) r.alamat = m[1].trim();
+  if ((m = /alamat\s+(.+?),\s+yang berdasarkan Penetapan/.exec(t)) || (m = /\bAlamat\s*:\s*(.+?)\s*(?:\n|Berkenaan)/.exec(t))) r.alamat = m[1].trim();
   if ((m = /menjadi\s+\**(?:WALI|PENGAMPU)\**\s+terhadap\s+(.+?)nya[,:]/i.exec(t))) r.hubungan = m[1].trim().toLowerCase();
   var anak = [], ra = /(?:^|\n)\s*(?:[-•]\s*)?([A-Z][A-Z .'’-]{2,}?),?\s+(?:laki-laki|perempuan),\s*lahir pada tanggal/gm;
   while ((m = ra.exec(t))) { var nm = m[1].trim().replace(/\s+/g, " "); if (anak.indexOf(nm) < 0) anak.push(nm); }
+  if (!anak.length && (m = /Berkenaan dengan (?:perwalian|pengampuan) atas nama\s+\**(.+?)\**\s*,?\s+terhadap/i.exec(t)))
+    anak = m[1].split(/\s{2,}|,\s*|\s+dan\s+/).map(function (x) { return x.replace(/\*/g, "").trim(); }).filter(function (x) { return x.length > 2; });
+  if (!r.hubungan && (m = /adalah\s+(?:seorang\s+)?((?:Saudara|Adik|Kakak|Ibu|Ayah|Bapak|Nenek|Kakek|Paman|Bibi|Anak|Cucu)\s+(?:Kandung|Tiri|Angkat))\b/i.exec(t))) r.hubungan = m[1].toLowerCase();
+  if (!r.hubungan && /dikaruniai\s+(?:\w+\s+){0,2}anak/i.test(t)) r.hubungan = "anak kandung";
   if (anak.length) r.anak = anak.map(function (x) { return x.replace(/\b\w+/g, function (w) { return w.charAt(0) + w.slice(1).toLowerCase(); }); });
   if ((m = /Pada hari ini,\s*([A-Za-z]+),\s*tanggal\s+([A-Za-z ]+?)\s+bulan\s+([A-Za-z]+)\s+tahun\s+([A-Za-z ]+?)[,\s]+(?:telah|kami)/i.exec(t))) {
     var d = kataKeAngka(m[2]), y = kataKeAngka(m[4]);
@@ -688,12 +693,14 @@ function unggahBerkas(files) {
       var laporan = [];
       hasil.forEach(function (h) {
         if (!h.r) { laporan.push("✗ " + h.nama + ": tidak terbaca"); return; }
-        var r = h.r, kunci = r.nomor.replace(/\s/g, "");
-        var p = S.penetapan.filter(function (q) { return q.nomor.replace(/\s/g, "") === kunci; })[0];
+        var r = h.r, kunci = (r.nomor || "").replace(/\s/g, ""), nm = function (x) { return String(x || "").toLowerCase().replace(/[^a-z]/g, ""); };
+        var p = (kunci && S.penetapan.filter(function (q) { return q.nomor.replace(/\s/g, "") === kunci; })[0]) ||
+          S.penetapan.filter(function (q) { return q.wali.trim() && nm(q.wali) === nm(r.wali); })[0] ||
+          (r.anak && S.penetapan.filter(function (q) { return q.anak.trim() && nm(q.anak) === nm(r.anak[0]); })[0]);
         if (!p) {
           var kosong = S.penetapan.filter(function (q) { return !q.nomor.trim() && !q.wali.trim(); })[0];
           p = kosong || penetapanBaru(); if (!kosong) S.penetapan.push(p);
-          p.pn = r.pn; p.nomor = r.nomor; p.tgl = r.tgl;
+          if (r.nomor) { p.pn = r.pn || ""; p.nomor = r.nomor; p.tgl = r.tgl || ""; }
         }
         var isi = [];
         function pasang(k, v, nama) { if (v && !String(p[k] || "").trim()) { p[k] = v; isi.push(nama); } }
@@ -706,9 +713,9 @@ function unggahBerkas(files) {
         pasang("ba", r.ba, "nomor BA");
         pasang("tglSumpah", r.tglSumpah, "tanggal sumpah");
         pasang("latar", r.latar, "keterangan BA Penghadapan");
-        if (r.harta.length) { pasang("harta", r.harta.join("; "), "harta"); if (isi.indexOf("harta") >= 0) p.hasil = "berhasil_pnbp"; }
+        if (r.harta && r.harta.length) { pasang("harta", r.harta.join("; "), "harta"); if (isi.indexOf("harta") >= 0) p.hasil = "berhasil_pnbp"; }
         if (r.tglSumpah && !S.tglKegiatan) S.tglKegiatan = r.tglSumpah;
-        laporan.push("✓ " + ist(p).W + " an. " + (p.wali || "?") + ": " + (isi.length ? isi.join(", ") : "sudah lengkap") + (r.harta.length ? "" : " (BA Harta belum berisi harta)"));
+        laporan.push("✓ " + ist(p).W + " an. " + (p.wali || "?") + ": " + (isi.length ? isi.join(", ") : "sudah lengkap") + "");
       });
       S.infoBerkas = laporan.join("\n");
       semua();
