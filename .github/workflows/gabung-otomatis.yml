@@ -1,0 +1,26 @@
+# Setiap push ke cabang kerja (ccr-*, claude/*) digabung otomatis ke main.
+# Bila ada konflik, penggabungan dibatalkan dan main tidak berubah.
+name: Gabung otomatis ke main
+on:
+  push:
+    branches: ['ccr-**', 'claude/**']
+permissions:
+  contents: write
+concurrency: gabung-main
+jobs:
+  gabung:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Gabungkan cabang ke main
+        env:
+          CABANG: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "$CABANG"
+          git merge --no-edit FETCH_HEAD
+          git push origin main
