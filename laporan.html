@@ -136,7 +136,7 @@ var LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKcAAAC3CAMAAABAHr5FAA
 var KEY = "bhp-laporan-kegiatan-v3";
 function penetapanBaru() {
   return { jenis: "perwalian", pn: "", nomor: "", tgl: "", wali: "", hubungan: "", anak: "", alamat: "", latar: "",
-    hasil: "berhasil_pnbp", sub: "", subLain: "", ba: "", harta: "", nilai: "", pnbp: "", agama: "", saksi: "" };
+    hasil: "berhasil_pnbp", sub: "", subLain: "", ba: "", harta: "", nilai: "", pnbp: "", agama: "", saksi: "", tglSumpah: "" };
 }
 function kosong(lama) {
   lama = lama || {};
@@ -395,7 +395,13 @@ function bacaST(teks) {
       if (w[4]) { r.mulai = isoTgl(w[1], w[2] || akhirBln, w[3] || akhirTh); r.selesai = isoTgl(w[4], akhirBln, akhirTh); }
       else r.mulai = isoTgl(w[1], akhirBln, akhirTh);
     }
-    var di = /\d{4}(?:,\s*pukul[^,;]*)?\s+di\s+([^;]+?)\s*;?$/i.exec(r.untuk); if (di) r.wilayah = di[1].trim();
+    var kk = r.untuk.match(/\b(Kota|Kabupaten|Kab\.)\s+[A-Z][A-Za-z]*(?:\s+[A-Z][A-Za-z]*)?/g);
+    if (kk) r.wilayah = kk.map(function (x) { return x.replace(/^Kab\./, "Kabupaten"); }).filter(function (x, i, a) { return a.indexOf(x) === i; }).join(" dan ");
+    else {
+      var ekor = r.untuk.replace(/^.*?\b\d{4}\b/, ""), tmp = [], md, rd = /\bdi\s+([^,;]+?)(?=\s+dan\s+pukul|\s*[,;]|\s*$)/gi;
+      while ((md = rd.exec(ekor))) tmp.push(md[1].trim());
+      if (tmp.length) r.wilayah = tmp.join(" dan ");
+    }
   }
   var lamp = t.slice(Math.max(0, t.search(/LAMPIRAN|DAFTAR NAMA/i))), rn = /\b(1\d{17})\b/g;
   while ((m = rn.exec(lamp))) if (r.nip.indexOf(m[1]) < 0) r.nip.push(m[1]);
@@ -432,8 +438,10 @@ function unggahST(file) {
         if (tim.length) { S.tim = tim; S.pj = 0; isi.push(tim.length + " pegawai"); }
       }
       if (r.penetapan.length && S.jenis === "penyumpahan") {
-        S.penetapan = r.penetapan.map(function (q) { var b = penetapanBaru(); b.pn = q.pn; b.nomor = q.nomor; b.tgl = q.tgl; b.jenis = q.jenis; b.wali = q.wali.replace(/\b\w+/g, function (w) { return w.charAt(0) + w.slice(1).toLowerCase(); }); return b; });
-        isi.push(r.penetapan.length + " penetapan");
+        var ada = S.penetapan.filter(function (q) { return q.nomor.trim() || q.wali.trim(); });
+        var baru = r.penetapan.filter(function (q) { return !ada.some(function (x) { return x.nomor.replace(/\s/g, "") === q.nomor.replace(/\s/g, ""); }); }).map(function (q) { var b = penetapanBaru(); b.pn = q.pn; b.nomor = q.nomor; b.tgl = q.tgl; b.jenis = q.jenis; b.wali = q.wali.replace(/\b\w+/g, function (w) { return w.charAt(0) + w.slice(1).toLowerCase(); }); return b; });
+        S.penetapan = ada.concat(baru);
+        isi.push(baru.length + " penetapan" + (ada.length ? " baru (isian penetapan yang sudah ada tidak diubah)" : ""));
       }
       if (r.untuk && S.jenis !== "penyumpahan" && !S.objek.trim()) S.catatanAI = (S.catatanAI ? S.catatanAI + "\n" : "") + "Tugas menurut Surat Tugas: " + r.untuk;
     }
@@ -573,7 +581,7 @@ var AUTO = {
     var n = S.penetapan.length;
     return S.penetapan.map(function (p, i) {
       var k = ist(p), h = p.hasil, w = k.W + " an. " + ph(p.wali, "nama"), a = ph(p.anak, "nama " + k.a), al = alasan(p), t;
-      var ba = "ditandatanganinya " + k.ba + " Nomor: " + ph(p.ba, "nomor berita acara") + " tanggal " + tglBA();
+      var ba = "ditandatanganinya " + k.ba + " Nomor: " + ph(p.ba, "nomor berita acara") + " tanggal " + tglBA(p);
       if (h === "berhasil_pnbp") t = "Telah dilaksanakan pengambilan sumpah " + w + " dan " + ba + ", beserta pencatatan harta kekayaan " + a + " berupa " + ph(p.harta, "uraian harta") +
         (angka(p.nilai) ? " dengan nilai " + rp(p.nilai) : "") + ", sehingga dimintakan Penerimaan Negara Bukan Pajak (PNBP)" + (angka(p.pnbp) ? " sebesar " + rp(p.pnbp) : "");
       else if (h === "berhasil_nihil") t = "Telah dilaksanakan pengambilan sumpah " + w + " dan " + ba + ", serta Berita Acara Pencatatan Harta berstatus “Nihil” karena " + a + " tidak memiliki harta kekayaan, sehingga PNBP tidak dapat dimintakan";
@@ -653,7 +661,7 @@ function waktuTxt(sep) {
   var awal = a.getFullYear() !== b.getFullYear() ? tgl(S.tglKegiatan) : a.getMonth() !== b.getMonth() ? a.getDate() + " " + BULAN[a.getMonth()] : String(a.getDate());
   return hari(S.tglKegiatan) + " s.d. " + hari(S.tglSelesai) + sep + awal + " s.d. " + tgl(S.tglSelesai);
 }
-function tglBA() { return multi() ? "[tanggal berita acara]" : tgl(S.tglKegiatan, "tanggal kegiatan"); }
+function tglBA(p) { return multi() ? tgl(p && p.tglSumpah, "tanggal sumpah") : tgl(S.tglKegiatan, "tanggal kegiatan"); }
 function tempat() { var u = []; S.krono.forEach(function (k) { var l = k.lokasi.trim(); if (l && u.indexOf(l) < 0) u.push(l); }); return u; }
 
 /* kronologi otomatis dari data penetapan */
@@ -673,7 +681,7 @@ function kronoAuto() {
     if (hasilOf(p.hasil).grup === "Ditunda") { ev(rumah, "Pengambilan sumpah " + w + " belum dapat dilaksanakan" + (al ? " karena " + kecil(al) : "") + (p.hasil === "jadwal_zoom" ? " dan dijadwalkan ulang secara virtual melalui Zoom (Zoompah)." : " dan akan dijadwalkan ulang.")); return; }
     ev(rumah, "Tim tiba di kediaman " + w + " dan diterima dengan baik. Tim menjelaskan secara rinci hak, kewajiban, serta tanggung jawab " + k.W + " terhadap diri dan harta kekayaan " + a + " sebagaimana diatur dalam KUHPerdata.");
     if (p.hasil === "gagal_menolak") ev(rumah, "Setelah mendapat penjelasan, " + w + " menyatakan menolak untuk diambil sumpahnya" + (al ? " dengan alasan " + kecil(al) : "") + ", sehingga pengambilan sumpah tidak dapat dilaksanakan.");
-    else ev(rumah, "Tim melaksanakan pengambilan sumpah " + w + " dan penandatanganan " + k.ba + " Nomor: " + ph(p.ba, "nomor berita acara") + " tanggal " + tglBA() + (p.agama ? ". " + k.W + " disumpah sesuai agama yang dianutnya (" + p.agama + ")" : "") + ", disaksikan oleh " + (p.saksi.trim() || "2 (dua) orang saksi") +
+    else ev(rumah, "Tim melaksanakan pengambilan sumpah " + w + " dan penandatanganan " + k.ba + " Nomor: " + ph(p.ba, "nomor berita acara") + " tanggal " + tglBA(p) + (p.agama ? ". " + k.W + " disumpah sesuai agama yang dianutnya (" + p.agama + ")" : "") + ", disaksikan oleh " + (p.saksi.trim() || "2 (dua) orang saksi") +
       (p.hasil === "berhasil_nihil" ? ". Berdasarkan keterangan " + k.W + ", " + a + " tidak memiliki harta kekayaan, sehingga tidak terdapat harta yang dapat dicatat dan PNBP tidak dapat dimintakan." : ", dilanjutkan dengan pencatatan harta kekayaan " + a + " berupa " + ph(p.harta, "uraian harta") + "."));
   });
   out[out.length - 1].uraian += " Setelah seluruh kegiatan selesai dilaksanakan secara tertib, Tim kembali menuju Kantor Balai Harta Peninggalan Medan.";
@@ -741,7 +749,7 @@ function renderForm() {
         h += sel("Rincian alasan", k + "sub", [{ id: "", label: "— tidak dirinci —" }].concat(hs.sub.map(function (s) { return { id: s, label: s }; }), [{ id: "__lain", label: "Alasan lain…" }]), true);
         if (p.sub === "__lain") h += inp("Tulis alasan", k + "subLain");
       } else if (hs.grup === "Ditunda") { p.sub = "__lain"; h += inp("Alasan penundaan (opsional)", k + "subLain"); }
-      if (hs.sukses) h += inp("Nomor " + t.ba, k + "ba", "text", 'placeholder="W.2.AHU.AHU.1-AH.06.03-…"') +
+      if (hs.sukses) h += (multi() ? '<div class="row">' + inp("Nomor " + t.ba, k + "ba", "text", 'placeholder="W.2.AHU.AHU.1-AH.06.03-…"') + inp("Tanggal sumpah", k + "tglSumpah", "date", 'min="' + S.tglKegiatan + '" max="' + S.tglSelesai + '"') + "</div>" : inp("Nomor " + t.ba, k + "ba", "text", 'placeholder="W.2.AHU.AHU.1-AH.06.03-…"')) +
         '<div class="row">' + sel("Disumpah menurut agama", k + "agama", AGAMA) + inp("Saksi (opsional)", k + "saksi", "text", 'placeholder="nama dan jabatan saksi"') + "</div>";
       if (hs.pnbp) h += inp("Uraian harta yang dicatat", k + "harta", "text", 'placeholder="sebidang tanah dan bangunan seluas ± 140 m² di …"') + '<div class="row">' + inp("Nilai harta (Rp)", k + "nilai", "text", 'inputmode="numeric"') + inp("PNBP (Rp)", k + "pnbp", "text", 'inputmode="numeric"') + "</div>";
       h += "</div>";
