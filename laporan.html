@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pembuat Laporan Kegiatan · BHP Medan</title>
+<style>
+:root {
+  --bg: #eef0f3; --panel: #fff; --line: #e2ddd5; --fg: #1f2733; --muted: #5d6573;
+  --gold: #a8822f; --maroon: #6e1d29; --maroon-2: #4f1520; --faint: #f6f4f1;
+  --ok: #1f6b3b; --bad: #9b2226; --warn: #8a6a24;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.45 "Segoe UI", Calibri, Arial, sans-serif; }
+.topbar { background: linear-gradient(180deg, var(--maroon), var(--maroon-2)); color: #fff; border-bottom: 3px solid var(--gold); }
+.topbar .in { max-width: 1560px; margin: 0 auto; padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.topbar .t1 { font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: #f0dfb6; font-weight: 700; }
+.topbar .t2 { font: 700 19px Georgia, Cambria, serif; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--fg); padding: 7px 12px; font-weight: 600; font-size: 13.5px; }
+button:hover { background: var(--faint); }
+button:disabled { opacity: .4; cursor: default; }
+button.pri { background: var(--gold); border-color: var(--gold); color: #fff; }
+button.pri:hover { background: #8a6a24; }
+button.ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,.45); }
+button.ghost:hover { background: rgba(255,255,255,.12); }
+button.sm { padding: 4px 9px; font-size: 12.5px; }
+button.del { color: var(--bad); }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.wrap { max-width: 1560px; margin: 0 auto; padding: 16px 20px 40px; display: grid; grid-template-columns: minmax(340px, 560px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(31,39,51,.06); }
+.card > h2 { margin: 0 0 6px; font: 700 16px Georgia, Cambria, serif; color: var(--maroon); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+label { display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin: 8px 0 3px; }
+label.chk { display: flex; gap: 8px; align-items: center; font-size: 13.5px; color: var(--fg); }
+label.chk input { width: auto; }
+input, select, textarea { width: 100%; font: inherit; padding: 7px 9px; border: 1px solid #cfc9be; border-radius: 7px; background: #fff; color: var(--fg); }
+textarea { min-height: 76px; resize: vertical; }
+textarea.tall { min-height: 150px; }
+.row { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+.row4 { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+.item { border: 1px solid var(--line); border-left: 4px solid var(--gold); border-radius: 9px; padding: 10px 12px 12px; margin-top: 10px; background: var(--faint); }
+.item.ok { border-left-color: var(--ok); } .item.bad { border-left-color: var(--bad); } .item.warn { border-left-color: var(--warn); }
+.item h3 { margin: 0; font-size: 14px; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.item h3 span.b { display: flex; gap: 4px; }
+.hint { font-size: 12.5px; color: var(--muted); margin: 4px 0 0; }
+.count { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.count input { width: 80px; }
+.ovh { display: flex; justify-content: space-between; align-items: end; gap: 8px; }
+.tag { font-size: 11.5px; font-weight: 700; padding: 1px 7px; border-radius: 99px; background: #e6f1ea; color: var(--ok); }
+.tag.man { background: #f6ecd6; color: var(--warn); }
+.thumb { max-width: 140px; max-height: 100px; border-radius: 6px; border: 1px solid var(--line); display: block; margin-top: 6px; }
+.preview { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; padding: 4px; }
+
+/* ---- kertas ---- */
+.paper { background: #fff; width: 210mm; max-width: 100%; margin: 0 auto; padding: 20mm 20mm 25mm 30mm; box-shadow: 0 6px 24px rgba(31,39,51,.18); color: #000; font: 12pt/1.5 Arial, Helvetica, sans-serif; }
+.paper p { margin: 0 0 6pt; text-align: justify; }
+.paper .ph { color: #c00000; }
+.paper .ctr, .paper .ctr p { text-align: center; }
+.paper .pb { border-top: 2px dashed #b9b2a4; margin: 18mm -20mm 18mm -30mm; height: 0; }
+.paper .cover { text-align: center; min-height: 240mm; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
+.paper table { border-collapse: collapse; }
+.paper table.b td, .paper table.b th { border: 1px solid #000; padding: 3pt 5pt; vertical-align: top; font-size: 10pt; text-align: left; }
+.paper table.b th { text-align: center; }
+.paper table.kop { width: 100%; border-bottom: 3px double #000; margin-bottom: 14pt; }
+.paper table.kop td { vertical-align: middle; text-align: center; padding-bottom: 6pt; line-height: 1.2; }
+.paper table.ttd { width: 100%; margin-top: 10pt; }
+.paper table.ttd td { width: 50%; vertical-align: top; text-align: center; padding: 0 6pt; }
+.paper table.foto { width: 100%; }
+.paper table.foto td { width: 50%; vertical-align: top; text-align: center; padding: 4pt 5pt 10pt; font-size: 9pt; line-height: 1.3; }
+.paper table.foto img { max-width: 100%; height: auto; }
+@media (max-width: 1000px) { .wrap { grid-template-columns: 1fr; } .preview { position: static; max-height: none; } .paper { padding: 12mm; } .paper .pb { margin: 12mm -12mm; } }
+@media print {
+  @page { size: A4; margin: 20mm 20mm 25mm 30mm; }
+  body { background: #fff; } .topbar, .form { display: none !important; }
+  .wrap { display: block; padding: 0; max-width: none; } .preview { position: static; max-height: none; overflow: visible; padding: 0; }
+  .paper { box-shadow: none; width: auto; padding: 0; }
+  .paper .pb { border: 0; margin: 0; break-after: page; }
+  .paper tr, .paper table.ttd, .paper table.foto td { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="in">
+  <div><div class="t1">Balai Harta Peninggalan Medan</div><div class="t2">Pembuat Laporan Kegiatan</div></div>
+  <div class="actions">
+    <button class="pri" id="btnPrint">Cetak / Simpan PDF</button>
+    <button class="ghost" id="btnWord">Unduh Word (.doc)</button>
+    <button class="ghost" id="btnNew">Laporan baru</button>
+  </div>
+</div></div>
+
+<div class="wrap">
+  <div class="form" id="form"></div>
+  <div class="preview"><div class="paper" id="paper"></div></div>
+</div>
+
+<script>
+/* =====================================================================
+   KONFIGURASI — kategori dan kalimat baku. Ubah di sini, sisanya ikut.
+   ===================================================================== */
+
+/* Hasil penyumpahan per penetapan. */
+var HASIL = [
+  { id: "berhasil_pnbp", grup: "Berhasil disumpah", cls: "ok", sukses: true, pnbp: true,
+    label: "Berhasil disumpah — ada harta, PNBP dimintakan", singkat: "Berhasil disumpah, PNBP dimintakan" },
+  { id: "berhasil_nihil", grup: "Berhasil disumpah", cls: "ok", sukses: true,
+    label: "Berhasil disumpah — tidak ada harta, PNBP tidak dapat dimintakan", singkat: "Berhasil disumpah, tidak ada harta (PNBP nihil)" },
+  { id: "gagal_menolak", grup: "Tidak berhasil disumpah", cls: "bad",
+    label: "Tidak berhasil — wali/pengampu menolak disumpah", singkat: "Tidak berhasil, menolak disumpah",
+    sub: ["Keberatan atas pengenaan PNBP", "Merasa tidak memerlukan penyumpahan", "Tidak menyebutkan alasan"] },
+  { id: "gagal_tidak_ditemui", grup: "Tidak berhasil disumpah", cls: "bad",
+    label: "Tidak berhasil — wali/pengampu tidak dapat ditemui", singkat: "Tidak berhasil, tidak dapat ditemui",
+    sub: ["Tidak berada di tempat", "Telah pindah alamat", "Alamat tidak ditemukan", "Telah meninggal dunia"] },
+  { id: "ditunda", grup: "Ditunda", cls: "warn",
+    label: "Ditunda / dijadwalkan ulang", singkat: "Ditunda / dijadwalkan ulang" }
+];
+
+/* Paragraf "Umum" baku (diambil dari template Laporan Penyumpahan Wali). */
+var UMUM_WALI = [
+  "Perwalian (voogdij) merupakan instrumen perlindungan hukum yang sangat penting dalam ruang lingkup hukum perdata di Indonesia. Hal ini merupakan wujud tanggung jawab negara untuk memberikan perlindungan dan pemenuhan hak keperdataan bagi anak di bawah umur yang tidak lagi berada di bawah kekuasaan orang tuanya. Secara hukum, anak yang belum berusia 18 (delapan belas) tahun atau belum menikah dianggap belum cakap bertindak secara mandiri dalam suatu perbuatan hukum (handelingsonbekwaam). Oleh karena itu, seluruh perbuatan hukum yang berkaitan dengan pemeliharaan diri, pendidikan, dan pengurusan harta kekayaannya harus diwakili oleh seorang wali yang ditunjuk sah melalui penetapan pengadilan, demi kepentingan terbaik bagi anak (the best interest of the child).",
+  "Di Indonesia, mekanisme perwalian diatur secara jelas dalam Undang-Undang Nomor 1 Tahun 1974 tentang Perkawinan, Kompilasi Hukum Islam (KHI), serta Kitab Undang-Undang Hukum Perdata (KUHPerdata). Aturan-aturan tersebut membatasi kewenangan wali agar tidak terjadi penyalahgunaan yang merugikan masa depan anak. Untuk mencegah kelalaian maupun penyusutan nilai aset milik anak di bawah umur, negara hadir melalui Balai Harta Peninggalan (BHP) yang bertindak selaku Wali Pengawas (toeziende voogd).",
+  "Sesuai ketentuan Pasal 366, 368, dan 370 KUHPerdata, sebelum seorang wali dapat menjalankan fungsinya, ia wajib mengadakan inventarisasi harta kekayaan anak dan mengelolanya dengan iktikad baik layaknya seorang “bapak yang baik” (als een goed huisvader). Sebagai komitmen mengikat agar wali patuh pada aturan hukum, setiap wali wajib terlebih dahulu mengangkat sumpah di hadapan Pejabat BHP."
+];
+var UMUM_AMPU = [
+  "Pengampuan (curatele) merupakan instrumen perlindungan hukum bagi orang dewasa yang karena keadaan dirinya tidak cakap bertindak sendiri dalam suatu perbuatan hukum. Berdasarkan Pasal 433 KUHPerdata, orang dewasa yang berada dalam keadaan tertentu sehingga tidak mampu mengurus kepentingannya sendiri ditempatkan di bawah pengampuan, dan seluruh perbuatan hukum yang berkaitan dengan diri maupun harta kekayaannya diwakili oleh seorang pengampu yang diangkat melalui penetapan pengadilan.",
+  "Untuk mencegah kelalaian maupun penyalahgunaan dalam pengurusan harta kekayaan orang yang berada di bawah pengampuan (terampu), negara hadir melalui Balai Harta Peninggalan (BHP) yang bertindak selaku Pengampu Pengawas sebagaimana diatur dalam Pasal 449 KUHPerdata.",
+  "Sesuai Pasal 452 KUHPerdata, ketentuan mengenai perwalian berlaku pula terhadap pengampuan, sehingga pengampu wajib mengadakan inventarisasi harta kekayaan terampu, mengelolanya dengan iktikad baik, serta terlebih dahulu mengangkat sumpah di hadapan Pejabat BHP."
+];
+
+/* Jenis kegiatan (tusi). "penyumpahan" memakai formulir per penetapan; lainnya memakai kerangka yang sama dengan isian bebas. */
+var JENIS = [
+  { id: "penyumpahan", label: "Penyumpahan Wali / Pengampu dan Pencatatan Harta" },
+  { id: "kepailitan", label: "Kepailitan (Kurator)",
+    judul: "PELAKSANAAN TUGAS KURATOR DALAM PENGURUSAN DAN PEMBERESAN HARTA PAILIT",
+    umum: ["Berdasarkan Pasal 70 ayat (1) Undang-Undang Nomor 37 Tahun 2004 tentang Kepailitan dan Penundaan Kewajiban Pembayaran Utang, Balai Harta Peninggalan merupakan Kurator yang bertugas melakukan pengurusan dan/atau pemberesan harta pailit di bawah pengawasan Hakim Pengawas."],
+    maksud: ["Melaksanakan tugas Balai Harta Peninggalan selaku Kurator dalam pengurusan dan/atau pemberesan harta pailit;"],
+    dasar: ["Undang-Undang Nomor 37 Tahun 2004 tentang Kepailitan dan Penundaan Kewajiban Pembayaran Utang;"] },
+  { id: "takhadir", label: "Ketidakhadiran (Afwezigheid)",
+    judul: "PELAKSANAAN PENGURUSAN HARTA KEKAYAAN ORANG YANG DINYATAKAN TIDAK HADIR",
+    umum: ["Berdasarkan Pasal 463 KUHPerdata, Balai Harta Peninggalan dapat diperintahkan oleh pengadilan untuk mengurus harta kekayaan dan mewakili kepentingan orang yang dinyatakan tidak hadir (afwezig)."],
+    maksud: ["Melaksanakan tugas Balai Harta Peninggalan dalam pengurusan harta kekayaan dan kepentingan orang yang dinyatakan tidak hadir;"],
+    dasar: ["Kitab Undang-Undang Hukum Perdata (KUHPerdata), khususnya Pasal 463;"] },
+  { id: "takterurus", label: "Harta Peninggalan Tak Terurus (Onbeheerde Nalatenschap)",
+    judul: "PELAKSANAAN PENGURUSAN HARTA PENINGGALAN TAK TERURUS",
+    umum: ["Berdasarkan Pasal 1126 dan Pasal 1127 KUHPerdata, harta peninggalan yang tidak ada ahli warisnya atau yang ditolak oleh para ahli warisnya dianggap sebagai harta peninggalan tak terurus, dan Balai Harta Peninggalan demi hukum wajib mengurusnya."],
+    maksud: ["Melaksanakan tugas Balai Harta Peninggalan dalam pengurusan harta peninggalan tak terurus;"],
+    dasar: ["Kitab Undang-Undang Hukum Perdata (KUHPerdata), khususnya Pasal 1126 dan 1127;"] },
+  { id: "koordinasi", label: "Koordinasi / Konsultasi dengan Instansi",
+    judul: "PELAKSANAAN KOORDINASI DAN KONSULTASI",
+    umum: ["Dalam rangka pelaksanaan tugas dan fungsi Balai Harta Peninggalan Medan diperlukan koordinasi dan konsultasi dengan instansi terkait."],
+    maksud: ["Melaksanakan koordinasi dan konsultasi dengan instansi terkait dalam rangka pelaksanaan tugas dan fungsi Balai Harta Peninggalan;"], dasar: [] },
+  { id: "sosialisasi", label: "Sosialisasi Tugas dan Fungsi BHP",
+    judul: "PELAKSANAAN SOSIALISASI TUGAS DAN FUNGSI BALAI HARTA PENINGGALAN",
+    umum: ["Tugas dan fungsi Balai Harta Peninggalan belum dikenal luas oleh masyarakat, sehingga diperlukan sosialisasi kepada masyarakat dan pemangku kepentingan."],
+    maksud: ["Menyebarluaskan informasi mengenai tugas dan fungsi Balai Harta Peninggalan kepada masyarakat dan pemangku kepentingan;"], dasar: [] },
+  { id: "lainnya", label: "Kegiatan Lainnya", judul: "PELAKSANAAN KEGIATAN", umum: [], maksud: [], dasar: [] }
+];
+
+var KOP = {
+  l1: "KEMENTERIAN HUKUM REPUBLIK INDONESIA", l2: "KANTOR WILAYAH SUMATERA UTARA", l3: "BALAI HARTA PENINGGALAN MEDAN",
+  alamat: ["Jalan Listrik No. 10 Medan", "Telepon: (061) 451 7830, Faksimile: (061) 451 4328", "Laman: www.bhpmedan.kemenkum.go.id, Pos-el: bhp.medan@kemenkum.go.id"]
+};
+var LOGO = "data:image/png;base64,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";
+/* ===================================================================== */
+
+var KEY = "bhp-laporan-kegiatan-v2";
+function penetapanBaru() {
+  return { jenis: "perwalian", pn: "", nomor: "", tgl: "", wali: "", hubungan: "", anak: "", alamat: "", latar: "",
+    hasil: "berhasil_pnbp", sub: "", subLain: "", ba: "", harta: "", nilai: "", pnbp: "" };
+}
+function kosong(lama) {
+  lama = lama || {};
+  return {
+    jenis: lama.jenis || "penyumpahan", sampul: lama.sampul !== false,
+    tglKegiatan: "", tglLaporan: "", kota: "Medan",
+    stNomor: "", stTanggal: "", dipaNomor: lama.dipaNomor || "", dipaTanggal: lama.dipaTanggal || "",
+    tim: lama.tim || [{ nama: "", pangkat: "", nip: "", jabatan: "" }], pj: lama.pj || 0,
+    kepala: lama.kepala || "",
+    penetapan: [penetapanBaru()],
+    judulLain: "", objek: "",
+    krono: [{ jam: "", jam2: "", lokasi: "", uraian: "", foto: "", fw: 0, fh: 0, ket: "" }],
+    ov: {}
+  };
+}
+var S = kosong();
+try { var sv = JSON.parse(localStorage.getItem(KEY)); if (sv && sv.tim && sv.penetapan) S = Object.assign(kosong(), sv); } catch (e) {}
+function simpan() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch (e) { try { var c = JSON.parse(JSON.stringify(S)); c.krono.forEach(function (k) { k.foto = ""; }); localStorage.setItem(KEY, JSON.stringify(c)); } catch (e2) {} }
+}
+
+/* ---------- util ---------- */
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function R(s) { return esc(s).replace(/\[[^\[\]]{2,40}\]/g, '<span class="ph">$&</span>'); }   /* [isian kosong] ditandai merah */
+function ph(s, nama) { s = String(s == null ? "" : s).trim(); return s || "[" + nama + "]"; }
+var BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+var HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+function pecah(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+function tgl(iso, nama) { var d = pecah(iso); return d ? d.getDate() + " " + BULAN[d.getMonth()] + " " + d.getFullYear() : "[" + (nama || "tanggal") + "]"; }
+function hari(iso) { var d = pecah(iso); return d ? HARI[d.getDay()] : "[hari]"; }
+function jam(s) { return String(s || "").replace(":", "."); }
+function angka(s) { return parseInt(String(s || "").replace(/\D/g, ""), 10) || 0; }
+function rp(n) { return "Rp" + angka(n).toLocaleString("id-ID"); }
+function bil(n) {
+  var s = ["nol", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas"];
+  if (n < 12) return s[n]; if (n < 20) return s[n - 10] + " belas";
+  if (n < 100) return s[Math.floor(n / 10)] + " puluh" + (n % 10 ? " " + s[n % 10] : ""); return String(n);
+}
+function nb(n) { return n + " (" + bil(n) + ")"; }
+function kecil(s) { return s.charAt(0).toLowerCase() + s.slice(1); }
+function hasilOf(id) { return HASIL.filter(function (h) { return h.id === id; })[0] || HASIL[0]; }
+function jenisOf(id) { return JENIS.filter(function (j) { return j.id === id; })[0] || JENIS[0]; }
+function get(path) { return path.split(".").reduce(function (o, k) { return o == null ? o : o[k]; }, S); }
+function set(path, val) { var ks = path.split("."), last = ks.pop(); ks.reduce(function (o, k) { return o[k]; }, S)[last] = val; }
+function baris(s) { return String(s || "").split(/\n+/).map(function (x) { return x.trim(); }).filter(Boolean); }
+
+/* istilah per jenis perkara */
+function ist(p) {
+  return p.jenis === "pengampuan"
+    ? { W: "Pengampu", a: "terampu", atas: "atas diri", perkara: "pengampuan", pengawas: "pengampu pengawas", ba: "Berita Acara Pengambilan Sumpah Pengampu" }
+    : { W: "Wali", a: "anak", atas: "atas diri anak bernama", perkara: "perwalian", pengawas: "wali pengawas (toeziende voogd)", ba: "Berita Acara Pengambilan Sumpah Wali" };
+}
+function refPen(p) { return "Penetapan " + ph(p.pn, "nama pengadilan") + " Nomor: " + ph(p.nomor, "nomor penetapan") + " tanggal " + tgl(p.tgl, "tanggal penetapan"); }
+function alasan(p) { return p.sub === "__lain" ? p.subLain.trim() : p.sub; }
+function campur() { var a = {}; S.penetapan.forEach(function (p) { a[p.jenis] = 1; }); return a; }
+
+/* =====================================================================
+   PEMBANGKIT TEKS OTOMATIS — setiap bagian bisa ditimpa manual di formulir
+   ===================================================================== */
+var AUTO = {
+  umum: function () {
+    var t = [], j = jenisOf(S.jenis);
+    if (S.jenis !== "penyumpahan") {
+      t = j.umum.slice();
+      t.push("Adapun kegiatan yang dilaksanakan oleh Tim Balai Harta Peninggalan Medan pada tanggal " + tgl(S.tglKegiatan, "tanggal kegiatan") + (S.objek.trim() ? " merupakan tindak lanjut atas " + S.objek.trim() + "." : " adalah [uraian singkat latar belakang kegiatan]."));
+      t.push("Laporan ini disusun untuk mencatat pelaksanaan tugas tersebut di lapangan sebagai bahan pertanggungjawaban dan evaluasi.");
+      return t.join("\n");
+    }
+    var c = campur();
+    if (c.perwalian) t = t.concat(UMUM_WALI);
+    if (c.pengampuan) t = t.concat(UMUM_AMPU);
+    S.penetapan.forEach(function (p, i) {
+      var k = ist(p);
+      t.push((i ? "Selanjutnya, kegiatan ini juga" : "Adapun kegiatan yang dilaksanakan oleh Tim Balai Harta Peninggalan Medan pada tanggal " + tgl(S.tglKegiatan, "tanggal kegiatan")) +
+        " merupakan tindak lanjut atas " + refPen(p) + " perihal penetapan " + ph(p.wali, "nama " + k.W.toLowerCase()) + " selaku " + k.W + " " + (p.hubungan.trim() ? "atas diri " + p.hubungan.trim() + "nya, " : k.atas + " ") + ph(p.anak, "nama " + k.a) + "." + (p.latar.trim() ? " " + p.latar.trim() : ""));
+    });
+    t.push("Laporan ini disusun untuk mencatat pelaksanaan tugas pengawasan tersebut di lapangan. Laporan ini merekam secara rinci proses koordinasi dengan aparatur setempat, penjelasan hak dan kewajiban " +
+      (c.perwalian && c.pengampuan ? "wali/pengampu" : c.pengampuan ? "pengampu" : "wali") + ", pelaksanaan penyumpahan, hingga pencatatan inventarisasi harta. Melalui kegiatan ini, diharapkan hak keperdataan " +
+      (c.pengampuan && !c.perwalian ? "orang yang berada di bawah pengampuan" : "dan masa depan anak yang berada di bawah perwalian") + " tetap terjamin dan terlindungi dengan baik.");
+    return t.join("\n");
+  },
+  maksud: function () {
+    if (S.jenis !== "penyumpahan") return jenisOf(S.jenis).maksud.concat(S.objek.trim() ? ["Menindaklanjuti " + S.objek.trim() + "."] : []).join("\n") || "[maksud dan tujuan kegiatan]";
+    var c = campur(), t = [];
+    if (c.perwalian) t.push("Melaksanakan tugas pokok dan fungsi Balai Harta Peninggalan sebagai wali pengawas (toeziende voogd) dalam penyelenggaraan perwalian sesuai ketentuan Pasal 331 KUHPerdata;");
+    if (c.pengampuan) t.push("Melaksanakan tugas pokok dan fungsi Balai Harta Peninggalan sebagai pengampu pengawas dalam penyelenggaraan pengampuan sesuai ketentuan Pasal 449 KUHPerdata;");
+    t.push("Memberikan kepastian hukum serta perlindungan atas diri dan harta kekayaan " + (c.perwalian ? "anak yang berada di bawah perwalian" : "") + (c.perwalian && c.pengampuan ? " dan " : "") + (c.pengampuan ? "orang yang berada di bawah pengampuan" : "") + ";");
+    S.penetapan.forEach(function (p, i) {
+      var k = ist(p);
+      t.push("Menindaklanjuti " + refPen(p) + " perihal penetapan " + ph(p.wali, "nama " + k.W.toLowerCase()) + " selaku " + k.W + " dari " + ph(p.anak, "nama " + k.a) + (i === S.penetapan.length - 1 ? "." : ";"));
+    });
+    return t.join("\n");
+  },
+  dasar: function () {
+    var t = [];
+    if (S.jenis === "penyumpahan") {
+      var c = campur();
+      t.push("Kitab Undang-Undang Hukum Perdata (KUHPerdata), khususnya Pasal " + (c.perwalian ? "330, 331, 362, 366, dan 370" : "") + (c.perwalian && c.pengampuan ? ", serta Pasal " : "") + (c.pengampuan ? "433, 449, dan 452" : "") + ";");
+      t.push("Peraturan Pemerintah Nomor 45 Tahun 2024 tentang Jenis dan Tarif atas Jenis Penerimaan Negara Bukan Pajak yang Berlaku pada Kementerian Hukum dan Hak Asasi Manusia;");
+      S.penetapan.forEach(function (p) { t.push(refPen(p) + " perihal penetapan " + ist(p).W + " An. " + ph(p.wali, "nama") + ";"); });
+    } else {
+      t = jenisOf(S.jenis).dasar.slice();
+      if (S.objek.trim()) t.push(S.objek.trim() + ";");
+    }
+    t.push("Daftar Isian Pelaksanaan Anggaran Balai Harta Peninggalan Medan Nomor: " + ph(S.dipaNomor, "nomor DIPA") + " tanggal " + tgl(S.dipaTanggal, "tanggal DIPA") + ";");
+    t.push("Surat Tugas Kepala Balai Harta Peninggalan Medan Nomor: " + ph(S.stNomor, "nomor surat tugas") + " tanggal " + tgl(S.stTanggal, "tanggal surat tugas") + ".");
+    return t.join("\n");
+  },
+  hasil: function () {
+    if (S.jenis !== "penyumpahan") return "[hasil yang dicapai, satu butir per baris]";
+    var n = S.penetapan.length;
+    return S.penetapan.map(function (p, i) {
+      var k = ist(p), h = p.hasil, w = k.W + " an. " + ph(p.wali, "nama"), a = ph(p.anak, "nama " + k.a), al = alasan(p), t;
+      var ba = "ditandatanganinya " + k.ba + " Nomor: " + ph(p.ba, "nomor berita acara") + " tanggal " + tgl(S.tglKegiatan, "tanggal kegiatan");
+      if (h === "berhasil_pnbp") t = "Telah dilaksanakan pengambilan sumpah " + w + " dan " + ba + ", beserta pencatatan harta kekayaan " + a + " berupa " + ph(p.harta, "uraian harta") +
+        (angka(p.nilai) ? " dengan nilai " + rp(p.nilai) : "") + ", sehingga dimintakan Penerimaan Negara Bukan Pajak (PNBP)" + (angka(p.pnbp) ? " sebesar " + rp(p.pnbp) : "");
+      else if (h === "berhasil_nihil") t = "Telah dilaksanakan pengambilan sumpah " + w + " dan " + ba + ". Berdasarkan keterangan " + k.W + ", " + a + " tidak memiliki harta kekayaan, sehingga tidak terdapat harta yang dapat dicatat dan PNBP tidak dapat dimintakan";
+      else if (h === "gagal_menolak") t = "Pengambilan sumpah " + w + " berdasarkan " + refPen(p) + " tidak dapat dilaksanakan karena " + k.W + " menolak untuk diambil sumpahnya" + (al ? " dengan alasan " + kecil(al) : "");
+      else if (h === "gagal_tidak_ditemui") t = "Pengambilan sumpah " + w + " berdasarkan " + refPen(p) + " tidak dapat dilaksanakan karena " + k.W + " tidak dapat ditemui di " + ph(p.alamat, "alamat") + (al ? " (" + kecil(al) + ")" : "");
+      else t = "Pengambilan sumpah " + w + " berdasarkan " + refPen(p) + " ditunda dan akan dijadwalkan ulang" + (al ? " karena " + kecil(al) : "");
+      return t + (i === n - 1 ? "." : i === n - 2 ? "; dan" : ";");
+    }).join("\n");
+  },
+  simpulan: function () {
+    if (S.jenis !== "penyumpahan") return "Pelaksanaan tugas Tim BHP Medan berjalan lancar, tertib administrasi, dan sesuai dengan ketentuan hukum yang berlaku. [simpulan kegiatan]";
+    var n = S.penetapan.length, ok = 0, tolak = 0, hilang = 0, tunda = 0, nihil = 0, tot = 0;
+    S.penetapan.forEach(function (p) {
+      var h = hasilOf(p.hasil); if (h.sukses) ok++; if (p.hasil === "gagal_menolak") tolak++; if (p.hasil === "gagal_tidak_ditemui") hilang++;
+      if (p.hasil === "ditunda") tunda++; if (p.hasil === "berhasil_nihil") nihil++; if (h.pnbp) tot += angka(p.pnbp);
+    });
+    var t = "Pelaksanaan tugas Tim BHP Medan berjalan " + (ok === n ? "lancar" : "cukup lancar") + ", tertib administrasi, dan sesuai dengan ketentuan hukum yang berlaku. ";
+    if (n === 1) {
+      var p = S.penetapan[0], k = ist(p), w = k.W + " an. " + ph(p.wali, "nama");
+      if (p.hasil === "berhasil_pnbp") t += "Pengambilan sumpah " + w + " dan pencatatan harta kekayaan " + ph(p.anak, "nama " + k.a) + " telah berhasil dilaksanakan" + (tot ? ", dengan PNBP sebesar " + rp(tot) : "") + ".";
+      else if (p.hasil === "berhasil_nihil") t += "Pengambilan sumpah " + w + " telah berhasil dilaksanakan, namun karena " + ph(p.anak, "nama " + k.a) + " tidak memiliki harta kekayaan, PNBP tidak dapat dimintakan.";
+      else if (p.hasil === "gagal_menolak") t += "Namun pengambilan sumpah belum dapat dilaksanakan karena " + w + " menolak untuk disumpah.";
+      else if (p.hasil === "gagal_tidak_ditemui") t += "Namun pengambilan sumpah belum dapat dilaksanakan karena " + w + " tidak dapat ditemui.";
+      else t += "Pengambilan sumpah " + w + " ditunda dan akan dijadwalkan ulang.";
+    } else {
+      var r = [];
+      if (ok) r.push(nb(ok) + " berhasil disumpah" + (nihil ? " (" + (nihil === ok ? "" : nb(nihil) + " di antaranya ") + "tanpa harta sehingga PNBP tidak dapat dimintakan)" : ""));
+      if (tolak) r.push(nb(tolak) + " tidak berhasil karena menolak disumpah");
+      if (hilang) r.push(nb(hilang) + " tidak berhasil karena tidak dapat ditemui");
+      if (tunda) r.push(nb(tunda) + " ditunda");
+      t += "Dari " + nb(n) + " penetapan, " + r.join(", ") + ". Jumlah PNBP yang dimintakan sebesar " + rp(tot) + ".";
+    }
+    return t;
+  },
+  saran: function () {
+    if (S.jenis !== "penyumpahan") return "[saran / tindak lanjut]";
+    var ada = {}; S.penetapan.forEach(function (p) { ada[p.hasil] = 1; });
+    var t = [];
+    if (ada.berhasil_pnbp) t.push("Balai Harta Peninggalan Medan perlu melakukan pemantauan berkala terhadap pengurusan harta kekayaan yang telah dicatat serta memastikan penyetoran PNBP sesuai ketentuan.");
+    if (ada.berhasil_nihil) t.push("Terhadap perwalian/pengampuan yang tidak terdapat harta, pengawasan tetap dilaksanakan dan pencatatan harta dilakukan apabila di kemudian hari diketahui terdapat harta kekayaan.");
+    if (ada.gagal_menolak) t.push("Terhadap wali/pengampu yang menolak disumpah, perlu disampaikan pemberitahuan tertulis mengenai kewajiban pengambilan sumpah serta dilakukan koordinasi dengan pengadilan yang mengeluarkan penetapan.");
+    if (ada.gagal_tidak_ditemui) t.push("Terhadap wali/pengampu yang tidak dapat ditemui, perlu dilakukan penjadwalan ulang serta koordinasi dengan aparatur desa/kelurahan setempat untuk memperoleh alamat dan kontak terkini.");
+    if (ada.ditunda) t.push("Terhadap penyumpahan yang ditunda, perlu segera ditetapkan jadwal pengganti.");
+    t.push("Koordinasi dengan aparatur desa/kelurahan setempat tetap perlu dijaga guna mendukung kelancaran tugas pengawasan di masa mendatang.");
+    return t.join(" ");
+  }
+};
+function T(k) { return S.ov[k] != null ? S.ov[k] : AUTO[k](); }
+
+function judul() {
+  if (S.jenis !== "penyumpahan") return S.judulLain.trim() || jenisOf(S.jenis).judul;
+  var c = campur();
+  if (c.perwalian && c.pengampuan) return "PELAKSANAAN SUMPAH TERHADAP WALI/PENGAMPU DAN PENCATATAN HARTA ANAK DI BAWAH PERWALIAN DAN ORANG DI BAWAH PENGAMPUAN";
+  if (c.pengampuan) return "PELAKSANAAN SUMPAH TERHADAP PENGAMPU DAN PENCATATAN HARTA ORANG DI BAWAH PENGAMPUAN";
+  return "PELAKSANAAN SUMPAH TERHADAP WALI DAN PENCATATAN HARTA ANAK DI BAWAH PERWALIAN";
+}
+function objekJudul() {
+  if (S.jenis !== "penyumpahan") return baris(S.objek);
+  return S.penetapan.map(function (p) { var k = ist(p); return refPen(p) + " perihal penetapan " + k.W + " An. " + ph(p.wali, "nama") + " " + k.atas + " " + ph(p.anak, "nama " + k.a); });
+}
+function namaKegiatan() {
+  if (S.jenis !== "penyumpahan") return kecil(judul().toLowerCase());
+  var c = campur();
+  return "pelaksanaan sumpah terhadap " + (c.perwalian && c.pengampuan ? "Wali/Pengampu dan pencatatan harta" : c.pengampuan ? "Pengampu dan pencatatan harta orang di bawah pengampuan" : "Wali dan pencatatan harta anak di bawah perwalian");
+}
+function tempat() { var u = []; S.krono.forEach(function (k) { var l = k.lokasi.trim(); if (l && u.indexOf(l) < 0) u.push(l); }); return u; }
+
+/* kronologi otomatis dari data penetapan */
+function kronoAuto() {
+  var out = [], c = campur();
+  function ev(lokasi, uraian) { out.push({ jam: "", jam2: "", lokasi: lokasi, uraian: uraian, foto: "", fw: 0, fh: 0, ket: "" }); }
+  ev("", "Tim mengawali pelaksanaan tugas pada hari " + hari(S.tglKegiatan) + ", " + tgl(S.tglKegiatan, "tanggal kegiatan") + ", dengan berkoordinasi terlebih dahulu di tingkat pemerintah desa/kelurahan. Langkah ini dilakukan untuk memverifikasi domisili dan data kependudukan sebelum Tim turun langsung menemui " + (c.pengampuan && !c.perwalian ? "Pengampu" : "Wali") + ".");
+  S.penetapan.forEach(function (p) {
+    var k = ist(p), w = k.W + " an. " + ph(p.wali, "nama"), a = ph(p.anak, "nama " + k.a), rumah = "Kediaman " + w + (p.alamat.trim() ? ", " + p.alamat.trim() : ""), al = alasan(p);
+    ev("Kantor Desa/Kelurahan [nama]", "Tim tiba di Kantor Desa/Kelurahan [nama] dan disambut baik oleh [nama dan jabatan]. Tim menjelaskan tugas pokok dan fungsi (tupoksi) BHP selaku " + k.pengawas + ", serta maksud kedatangan Tim untuk menindaklanjuti " + refPen(p) + " perihal penetapan " + ph(p.wali, "nama") + " selaku " + k.W + " dari " + a + ".");
+    if (p.hasil === "gagal_tidak_ditemui") {
+      ev(rumah, "Tim mendatangi alamat " + w + " di " + ph(p.alamat, "alamat") + ", namun " + k.W + " tidak dapat ditemui" + (al ? " karena " + kecil(al) : "") + ". Tim meminta keterangan dari aparatur dan warga setempat mengenai keberadaan " + k.W + ", sehingga pengambilan sumpah tidak dapat dilaksanakan.");
+      return;
+    }
+    if (p.hasil === "ditunda") { ev(rumah, "Pengambilan sumpah " + w + " ditunda" + (al ? " karena " + kecil(al) : "") + " dan akan dijadwalkan ulang."); return; }
+    ev(rumah, "Tim tiba di kediaman " + w + " dan diterima dengan baik. Tim menjelaskan secara rinci hak, kewajiban, serta tanggung jawab " + k.W + " terhadap diri dan harta kekayaan " + a + " sebagaimana diatur dalam KUHPerdata.");
+    if (p.hasil === "gagal_menolak") ev(rumah, "Setelah mendapat penjelasan, " + w + " menyatakan menolak untuk diambil sumpahnya" + (al ? " dengan alasan " + kecil(al) : "") + ", sehingga pengambilan sumpah tidak dapat dilaksanakan.");
+    else ev(rumah, "Tim melaksanakan pengambilan sumpah " + w + " dan penandatanganan " + k.ba + " Nomor: " + ph(p.ba, "nomor berita acara") + " tanggal " + tgl(S.tglKegiatan, "tanggal kegiatan") + ", yang disaksikan oleh 2 (dua) orang saksi" +
+      (p.hasil === "berhasil_nihil" ? ". Berdasarkan keterangan " + k.W + ", " + a + " tidak memiliki harta kekayaan, sehingga tidak terdapat harta yang dapat dicatat dan PNBP tidak dapat dimintakan." : ", dilanjutkan dengan pencatatan harta kekayaan " + a + " berupa " + ph(p.harta, "uraian harta") + "."));
+  });
+  out[out.length - 1].uraian += " Setelah seluruh kegiatan selesai dilaksanakan secara tertib, Tim kembali menuju Kantor Balai Harta Peninggalan Medan.";
+  return out;
+}
+
+/* =====================================================================
+   FORMULIR
+   ===================================================================== */
+function inp(label, path, type, attr) { return "<div><label>" + label + '</label><input type="' + (type || "text") + '" data-k="' + path + '" value="' + esc(get(path)) + '" ' + (attr || "") + "></div>"; }
+function area(label, path, phd) { return "<div><label>" + label + '</label><textarea data-k="' + path + '" placeholder="' + esc(phd || "") + '">' + esc(get(path)) + "</textarea></div>"; }
+function sel(label, path, opts, re) {
+  var cur = get(path), h = "<div><label>" + label + '</label><select data-k="' + path + '"' + (re ? " data-re" : "") + ">", g = null;
+  opts.forEach(function (o) {
+    if (o.grup !== g) { if (g) h += "</optgroup>"; if (o.grup) h += '<optgroup label="' + esc(o.grup) + '">'; g = o.grup; }
+    h += '<option value="' + esc(o.id) + '"' + (String(o.id) === String(cur) ? " selected" : "") + ">" + esc(o.label) + "</option>";
+  });
+  return h + (g ? "</optgroup>" : "") + "</select></div>";
+}
+function ovArea(label, k, hint, tall) {
+  var man = S.ov[k] != null;
+  return '<div class="ovh"><label>' + label + ' <span class="tag' + (man ? " man" : "") + '" id="tag-' + k + '">' + (man ? "diedit manual" : "otomatis") + '</span></label><button class="sm" data-act="resetOv" data-key="' + k + '">Kembalikan otomatis</button></div>' +
+    '<textarea class="' + (tall ? "tall" : "") + '" data-ov="' + k + '">' + esc(T(k)) + "</textarea>" + (hint ? '<p class="hint">' + hint + "</p>" : "");
+}
+
+function renderForm() {
+  var h = "", peny = S.jenis === "penyumpahan";
+  h += '<div class="card"><h2>1. Jenis Kegiatan</h2>' + sel("Jenis kegiatan (tusi)", "jenis", JENIS, true) +
+    '<label class="chk"><input type="checkbox" data-k="sampul"' + (S.sampul ? " checked" : "") + "> Sertakan halaman sampul</label></div>";
+
+  h += '<div class="card"><h2>2. Waktu dan Surat Tugas</h2><div class="row">' + inp("Tanggal kegiatan", "tglKegiatan", "date") + inp("Tanggal laporan (kosong = sama)", "tglLaporan", "date") + "</div>" +
+    '<div class="row">' + inp("Nomor Surat Tugas", "stNomor", "text", 'placeholder="W.2.AHU.AHU.1-AH.06.02-…"') + inp("Tanggal Surat Tugas", "stTanggal", "date") + "</div>" +
+    '<div class="row">' + inp("Nomor DIPA", "dipaNomor", "text", 'placeholder="SP DIPA-…"') + inp("Tanggal DIPA", "dipaTanggal", "date") + "</div></div>";
+
+  h += '<div class="card"><h2>3. Tim Pelaksana <button class="sm" data-act="addTim">+ Tambah</button></h2><p class="hint">Tersimpan untuk laporan berikutnya.</p>';
+  S.tim.forEach(function (_, i) {
+    var k = "tim." + i + ".";
+    h += '<div class="item"><h3>Pegawai ' + (i + 1) + '<span class="b"><label class="chk" style="margin:0;font-size:12.5px"><input type="radio" name="pj" data-pj="' + i + '"' + (+S.pj === i ? " checked" : "") + '> Penanggung jawab</label>' +
+      '<button class="sm del" data-act="delTim" data-i="' + i + '"' + (S.tim.length < 2 ? " disabled" : "") + ">Hapus</button></span></h3>" +
+      '<div class="row">' + inp("Nama", k + "nama") + inp("NIP", k + "nip") + "</div><div class=\"row\">" + inp("Pangkat / Gol.", k + "pangkat", "text", 'placeholder="Penata Tk. I (III/d)"') + inp("Jabatan", k + "jabatan") + "</div></div>";
+  });
+  h += inp("Kepala Balai Harta Peninggalan Medan (mengetahui)", "kepala") + "</div>";
+
+  if (peny) {
+    h += '<div class="card"><h2>4. Penetapan</h2><div class="count"><label style="margin:0">Jumlah penetapan</label><input type="number" min="1" max="30" id="nPen" value="' + S.penetapan.length + '"><button class="sm" data-act="addPen">+ Tambah</button></div>';
+    S.penetapan.forEach(function (p, i) {
+      var k = "penetapan." + i + ".", hs = hasilOf(p.hasil), t = ist(p), w = t.W.toLowerCase();
+      h += '<div class="item ' + hs.cls + '"><h3>Penetapan ' + (i + 1) + '<button class="sm del" data-act="delPen" data-i="' + i + '"' + (S.penetapan.length < 2 ? " disabled" : "") + ">Hapus</button></h3>" +
+        '<div class="row">' + sel("Jenis perkara", k + "jenis", [{ id: "perwalian", label: "Perwalian (wali)" }, { id: "pengampuan", label: "Pengampuan (pengampu)" }], true) + inp("Pengadilan", k + "pn", "text", 'placeholder="Pengadilan Negeri Lubuk Pakam"') + "</div>" +
+        '<div class="row">' + inp("Nomor penetapan", k + "nomor", "text", 'placeholder="323/Pdt.P/2025/PN Lbp"') + inp("Tanggal penetapan", k + "tgl", "date") + "</div>" +
+        '<div class="row">' + inp("Nama " + w, k + "wali") + inp("Nama " + t.a, k + "anak") + "</div>" +
+        '<div class="row">' + inp(t.a.charAt(0).toUpperCase() + t.a.slice(1) + " adalah … dari " + w, k + "hubungan", "text", 'placeholder="anak kandung / keponakan"') + inp("Alamat " + w, k + "alamat") + "</div>" +
+        area("Latar belakang singkat (opsional, masuk ke bagian Umum)", k + "latar", "mis. tempat/tanggal lahir anak, keperluan perwalian, objek harta") +
+        sel("Hasil pelaksanaan", k + "hasil", HASIL, true);
+      if (hs.sub) {
+        h += sel("Rincian alasan", k + "sub", [{ id: "", label: "— tidak dirinci —" }].concat(hs.sub.map(function (s) { return { id: s, label: s }; }), [{ id: "__lain", label: "Alasan lain…" }]), true);
+        if (p.sub === "__lain") h += inp("Tulis alasan", k + "subLain");
+      } else if (hs.id === "ditunda") { p.sub = "__lain"; h += inp("Alasan penundaan (opsional)", k + "subLain"); }
+      if (hs.sukses) h += inp("Nomor " + t.ba, k + "ba", "text", 'placeholder="W.2.AHU.AHU.1-AH.06.03-…"');
+      if (hs.pnbp) h += inp("Uraian harta yang dicatat", k + "harta", "text", 'placeholder="sebidang tanah dan bangunan seluas ± 140 m² di …"') + '<div class="row">' + inp("Nilai harta (Rp)", k + "nilai", "text", 'inputmode="numeric"') + inp("PNBP (Rp)", k + "pnbp", "text", 'inputmode="numeric"') + "</div>";
+      h += "</div>";
+    });
+    h += "</div>";
+  } else {
+    h += '<div class="card"><h2>4. Objek Kegiatan</h2>' + inp("Judul laporan (kosong = bawaan)", "judulLain", "text", 'placeholder="' + esc(jenisOf(S.jenis).judul) + '"') +
+      area("Dasar perkara / objek (putusan, penetapan, surat) — opsional", "objek", "mis. Putusan Pengadilan Niaga pada Pengadilan Negeri Medan Nomor: … tanggal …") + "</div>";
+  }
+
+  h += '<div class="card"><h2>5. Kronologi Kegiatan <button class="sm" data-act="addKr">+ Tambah</button></h2>' +
+    (peny ? '<button class="sm" data-act="autoKr">Susun kronologi otomatis dari data penetapan</button><p class="hint">Hasilnya draf yang bisa diedit. Klik lagi bila data penetapan berubah. Lokasi tiap butir otomatis menjadi daftar "Tempat Kegiatan".</p>' : '<p class="hint">Lokasi tiap butir otomatis menjadi daftar "Tempat Kegiatan".</p>');
+  S.krono.forEach(function (kr, i) {
+    var k = "krono." + i + ".";
+    h += '<div class="item"><h3>Butir ' + (i + 1) + '<span class="b"><button class="sm" data-act="upKr" data-i="' + i + '"' + (i ? "" : " disabled") + '>↑</button><button class="sm" data-act="dnKr" data-i="' + i + '"' + (i < S.krono.length - 1 ? "" : " disabled") + '>↓</button>' +
+      '<button class="sm del" data-act="delKr" data-i="' + i + '"' + (S.krono.length < 2 ? " disabled" : "") + ">Hapus</button></span></h3>" +
+      '<div class="row">' + inp("Pukul", k + "jam", "time") + inp("s.d. (opsional)", k + "jam2", "time") + "</div>" + inp("Lokasi", k + "lokasi") +
+      area("Uraian (setelah “Pada pukul … WIB,”)", k + "uraian", "Tim tiba di …") +
+      '<label>Foto dokumentasi</label><input type="file" accept="image/*" data-foto="' + i + '">' +
+      (kr.foto ? '<img class="thumb" src="' + kr.foto + '" alt=""><div class="row" style="align-items:end">' + inp("Keterangan foto", k + "ket") + '<button class="sm del" data-act="delFoto" data-i="' + i + '">Hapus foto</button></div>' : "") + "</div>";
+  });
+  h += "</div>";
+
+  h += '<div class="card"><h2>6. Naskah Laporan</h2><p class="hint">Disusun otomatis dari isian di atas. Mengetik di kotak mana pun menjadikannya manual (tidak lagi mengikuti isian).</p>' +
+    ovArea("A.1 Umum", "umum", "Satu paragraf per baris.", true) + ovArea("A.2 Maksud dan Tujuan", "maksud", "Satu butir per baris.") + ovArea("A.4 Dasar", "dasar", "Satu butir per baris.") +
+    ovArea("C. Hasil yang Dicapai", "hasil", "Satu butir per baris.") + ovArea("D.1 Simpulan", "simpulan") + ovArea("D.2 Saran", "saran") + "</div>";
+
+  document.getElementById("form").innerHTML = h;
+}
+
+/* =====================================================================
+   PRATINJAU LAPORAN (struktur mengikuti template BHP Medan)
+   ===================================================================== */
+function P(indent, html, extra) { return '<p style="margin-left:' + indent + "cm;" + (extra || "") + '">' + html + "</p>"; }
+function LI(indent, mark, text) { return '<p style="margin-left:' + indent + "cm;text-indent:-0.75cm\">" + mark + '<span style="display:inline-block;width:' + (0.75 - 0.2 * mark.length).toFixed(2) + 'cm"></span>' + R(text) + "</p>"; }
+function Hd(indent, mark, text) { return '<p style="margin-left:' + indent + 'cm;text-indent:-0.75cm;margin-top:8pt;text-align:left"><b>' + mark + '<span style="display:inline-block;width:' + (0.75 - 0.2 * mark.length).toFixed(2) + 'cm"></span>' + esc(text) + "</b></p>"; }
+function abc(i) { return String.fromCharCode(97 + i) + "."; }
+var PB = '<div class="pb"></div><br clear="all" style="page-break-before:always;mso-break-type:section-break">';
+
+function buildPaper(word) {
+  var peny = S.jenis === "penyumpahan", h = "", ob = objekJudul(), tLap = S.tglLaporan || S.tglKegiatan, d = pecah(tLap);
+  var logo = function (w) { return '<img src="' + (word ? "logo.png" : LOGO) + '" width="' + w + '" height="' + Math.round(w * 1.1) + '" alt="Logo">'; };
+  var objHtml = ob.length > 1 ? ob.map(function (o, i) { return (i + 1) + ". " + R(o); }).join("<br>") : R(ob[0] || "");
+  var judulHtml = "<b>" + esc(judul()) + (ob.length ? " BERDASARKAN:" : "") + "</b>";
+
+  if (S.sampul) {
+    h += '<div class="cover ctr"><div><p class="ctr" style="font-size:16pt;margin-bottom:0"><b>LAPORAN</b></p><p class="ctr"><b>TENTANG</b></p><p class="ctr" style="font-size:13pt">' + judulHtml + '</p><p class="ctr">' + objHtml + "</p>" +
+      '<p class="ctr" style="margin-top:18pt">' + esc(S.kota) + ", " + R(tgl(tLap, "tanggal laporan")) + '</p></div><div style="margin:30pt 0">' + logo(150) + "</div>" +
+      '<div><p class="ctr" style="margin:0"><b>' + KOP.l1 + '</b></p><p class="ctr" style="margin:0"><b>' + KOP.l2 + '</b></p><p class="ctr" style="margin:0"><b>' + KOP.l3 + '</b></p><p class="ctr"><b>' + (d ? d.getFullYear() : "") + "</b></p></div></div>" + PB;
+  }
+
+  h += '<table class="kop"><tr><td style="width:80px">' + logo(70) + '</td><td><div style="font-size:13pt"><b>' + KOP.l1 + '</b></div><div style="font-size:12pt"><b>' + KOP.l2 + '</b></div><div style="font-size:12pt"><b>' + KOP.l3 + "</b></div>" +
+    '<div style="font-size:9pt">' + KOP.alamat.map(esc).join("<br>") + "</div></td></tr></table>";
+  h += '<p class="ctr" style="margin:0"><b>LAPORAN</b></p><p class="ctr" style="margin:0"><b>TENTANG</b></p><p class="ctr" style="margin:0">' + judulHtml + '</p><p class="ctr" style="margin-bottom:14pt">' + objHtml + "</p>";
+
+  /* A. Pendahuluan */
+  h += Hd(0.75, "A.", "Pendahuluan");
+  h += Hd(1.5, "1.", "Umum") + baris(T("umum")).map(function (s) { return P(1.5, R(s)); }).join("");
+  h += Hd(1.5, "2.", "Maksud dan Tujuan") + P(1.5, "Kegiatan " + R(namaKegiatan()) + " ini memiliki maksud dan tujuan sebagai berikut:") + baris(T("maksud")).map(function (s, i) { return LI(2.25, abc(i), s); }).join("");
+  h += Hd(1.5, "3.", "Ruang Lingkup") + P(1.5, "Ruang lingkup kegiatan " + R(namaKegiatan()) + " ini adalah sebagai berikut:");
+  var pj = S.tim[+S.pj] || S.tim[0];
+  h += Hd(2.25, "a.", "Penanggung Jawab") + P(2.25, "Penanggung jawab kegiatan ini adalah " + R(ph(pj.nama, "nama penanggung jawab")) + (pj.nip.trim() ? " (NIP. " + esc(pj.nip.trim()) + ")" : "") + ", " + R(ph(pj.jabatan, "jabatan")) + " pada Balai Harta Peninggalan Medan.");
+  var tp = tempat();
+  h += Hd(2.25, "b.", "Tempat Kegiatan") + P(2.25, "Kegiatan ini dilaksanakan pada:") +
+    '<table style="margin-left:2.25cm"><tr><td style="width:3.2cm;vertical-align:top">Hari / Tanggal</td><td style="width:.4cm;vertical-align:top">:</td><td>' + R(hari(S.tglKegiatan) + " / " + tgl(S.tglKegiatan, "tanggal kegiatan")) + "</td></tr>" +
+    '<tr><td style="vertical-align:top">Tempat</td><td style="vertical-align:top">:</td><td>' + (tp.length === 1 ? R(tp[0]) : tp.length ? "" : R("[isi lokasi pada kronologi]")) + "</td></tr></table>" +
+    (tp.length > 1 ? tp.map(function (s, i) { return LI(3, (i + 1) + ".", s + (i === tp.length - 1 ? "." : i === tp.length - 2 ? "; dan" : ";")); }).join("") : "");
+  h += Hd(2.25, "c.", "Pegawai yang Ditunjuk") + P(2.25, "Pegawai yang ditunjuk untuk melaksanakan kegiatan berdasarkan Surat Tugas Nomor: " + R(ph(S.stNomor, "nomor surat tugas")) + " tanggal " + R(tgl(S.stTanggal, "tanggal surat tugas")) + ", di antaranya:") +
+    '<table class="b" style="margin-left:2.25cm;margin-bottom:8pt"><tr><th>No.</th><th>Nama</th><th>Pangkat / Gol.</th><th>NIP</th><th>Jabatan</th></tr>' +
+    S.tim.map(function (t, i) { return "<tr><td>" + (i + 1) + ".</td><td>" + R(ph(t.nama, "nama")) + "</td><td>" + esc(t.pangkat) + "</td><td>" + esc(t.nip) + "</td><td>" + esc(t.jabatan) + "</td></tr>"; }).join("") + "</table>";
+  h += Hd(1.5, "4.", "Dasar") + baris(T("dasar")).map(function (s, i) { return LI(2.25, abc(i), s); }).join("");
+
+  /* B. Kegiatan */
+  h += Hd(0.75, "B.", "Kegiatan yang Dilaksanakan");
+  var kr = S.krono.filter(function (k) { return k.uraian.trim(); });
+  h += kr.length ? kr.map(function (k) {
+    var w = k.jam ? "Pada pukul " + jam(k.jam) + (k.jam2 ? " hingga " + jam(k.jam2) : "") + " WIB, " : "";
+    return LI(1.5, "-", w + k.uraian.trim());
+  }).join("") : P(0.75, R("[isi kronologi kegiatan]"));
+
+  /* C. Hasil */
+  h += Hd(0.75, "C.", "Hasil yang Dicapai") + P(0.75, "Berdasarkan serangkaian kegiatan di atas, hasil yang dicapai oleh Tim adalah sebagai berikut:") + baris(T("hasil")).map(function (s, i) { return LI(1.5, (i + 1) + ".", s); }).join("");
+  if (peny && S.penetapan.length > 1) {
+    var tot = 0;
+    h += P(0.75, "Rekapitulasi hasil pelaksanaan:") + '<table class="b" style="margin-left:.75cm;margin-bottom:8pt"><tr><th>No.</th><th>Nomor Penetapan</th><th>Wali / Pengampu</th><th>Hasil</th><th>PNBP</th></tr>' +
+      S.penetapan.map(function (p, i) {
+        var hs = hasilOf(p.hasil), n = hs.pnbp ? angka(p.pnbp) : 0, al = hs.sub ? alasan(p) : ""; tot += n;
+        return "<tr><td>" + (i + 1) + ".</td><td>" + R(ph(p.nomor, "nomor")) + "</td><td>" + R(ph(p.wali, "nama")) + "</td><td>" + esc(hs.singkat) + (al ? ": " + esc(kecil(al)) : "") + '</td><td style="text-align:right;white-space:nowrap">' + (hs.pnbp ? rp(n) : "–") + "</td></tr>";
+      }).join("") + '<tr><td colspan="4" style="text-align:right"><b>Jumlah PNBP</b></td><td style="text-align:right;white-space:nowrap"><b>' + rp(tot) + "</b></td></tr></table>";
+  }
+
+  /* D, E */
+  h += Hd(0.75, "D.", "Simpulan dan Saran") + Hd(1.5, "1.", "Simpulan") + baris(T("simpulan")).map(function (s) { return P(1.5, R(s)); }).join("") + Hd(1.5, "2.", "Saran") + baris(T("saran")).map(function (s) { return P(1.5, R(s)); }).join("");
+  h += Hd(0.75, "E.", "Penutup") + P(0.75, "Demikian laporan pelaksanaan tugas ini dibuat dengan sebenar-benarnya sebagai wujud transparansi dan pertanggungjawaban atas tugas yang telah diamanatkan.");
+
+  /* tanda tangan */
+  var sp = '<br><br><br>';
+  var lain = S.tim.filter(function (_, i) { return i !== (+S.pj < S.tim.length ? +S.pj : 0); });
+  h += '<table class="ttd"><tr><td></td><td style="text-align:left;padding-left:1.5cm">Dibuat di ' + esc(S.kota) + "<br>pada tanggal " + R(tgl(tLap, "tanggal laporan")) + "</td></tr>" +
+    "<tr><td><br>" + R(ph(pj.jabatan, "jabatan")) + sp + "<br>" + R(ph(pj.nama, "nama")) + "</td><td>Mengetahui,<br>Kepala Balai Harta Peninggalan Medan" + sp + "<br>" + R(ph(S.kepala, "nama Kepala BHP")) + "</td></tr>" +
+    lain.map(function (t) { return "<tr><td>" + sp + "<br>" + R(ph(t.nama, "nama")) + "</td><td></td></tr>"; }).join("") + "</table>";
+
+  /* dokumentasi */
+  var ft = S.krono.filter(function (k) { return k.foto; });
+  if (ft.length) {
+    h += PB + '<p class="ctr"><b>DOKUMENTASI</b></p><table class="foto">';
+    ft.forEach(function (k, i) {
+      var w = 290, hh = k.fw ? Math.round(w * k.fh / k.fw) : 218;
+      var cap = "Foto " + (i + 1) + (k.jam ? " - Waktu: " + jam(k.jam) + " WIB, " + tgl(S.tglKegiatan) : "") + (k.lokasi.trim() ? " | Lokasi: " + k.lokasi.trim() : "") + (k.ket.trim() ? " - " + k.ket.trim() : "");
+      if (i % 2 === 0) h += "<tr>";
+      h += '<td><img src="' + (word ? "foto" + i + ".jpg" : k.foto) + '" width="' + w + '" height="' + hh + '" alt=""><br>' + R(cap) + "</td>";
+      if (i % 2 === 1 || i === ft.length - 1) h += (i % 2 === 0 ? "<td></td>" : "") + "</tr>";
+    });
+    h += "</table>";
+  }
+  return h;
+}
+
+function renderPaper() {
+  document.getElementById("paper").innerHTML = buildPaper(false);
+  /* kotak naskah yang masih "otomatis" ikut diperbarui */
+  Array.prototype.forEach.call(document.querySelectorAll("textarea[data-ov]"), function (ta) {
+    var k = ta.getAttribute("data-ov"); if (S.ov[k] == null && document.activeElement !== ta) ta.value = AUTO[k]();
+  });
+}
+
+/* =====================================================================
+   INTERAKSI
+   ===================================================================== */
+var form = document.getElementById("form");
+function semua() { simpan(); renderForm(); renderPaper(); }
+form.addEventListener("input", function (e) {
+  var el = e.target, k = el.getAttribute("data-k"), o = el.getAttribute("data-ov");
+  if (o) { S.ov[o] = el.value; var tg = document.getElementById("tag-" + o); tg.textContent = "diedit manual"; tg.className = "tag man"; simpan(); renderPaper(); return; }
+  if (el.hasAttribute("data-pj")) { S.pj = +el.getAttribute("data-pj"); simpan(); renderPaper(); return; }
+  if (!k) return;
+  set(k, el.type === "checkbox" ? el.checked : el.value);
+  if (/\.hasil$/.test(k)) { set(k.replace(/hasil$/, "sub"), ""); set(k.replace(/hasil$/, "subLain"), ""); }
+  if (k === "jenis") S.ov = {};
+  simpan();
+  if (el.hasAttribute("data-re")) renderForm();
+  renderPaper();
+});
+form.addEventListener("change", function (e) {
+  var el = e.target;
+  if (el.id === "nPen") {
+    var n = Math.max(1, Math.min(30, parseInt(el.value, 10) || 1));
+    if (n < S.penetapan.length) {
+      if (S.penetapan.slice(n).some(function (p) { return p.nomor || p.wali || p.anak; }) && !confirm("Penetapan " + (n + 1) + " dan seterusnya sudah diisi dan akan dihapus. Lanjutkan?")) { el.value = S.penetapan.length; return; }
+      S.penetapan.length = n;
+    }
+    while (S.penetapan.length < n) S.penetapan.push(penetapanBaru());
+    semua();
+  }
+  if (el.hasAttribute("data-foto") && el.files[0]) {
+    var i = +el.getAttribute("data-foto"), rd = new FileReader();
+    rd.onload = function () {
+      var im = new Image();
+      im.onload = function () {
+        var sc = Math.min(1, 1100 / Math.max(im.width, im.height)), c = document.createElement("canvas");
+        c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc);
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+        S.krono[i].foto = c.toDataURL("image/jpeg", 0.82); S.krono[i].fw = c.width; S.krono[i].fh = c.height;
+        semua();
+      };
+      im.onerror = function () { alert("Berkas ini tidak dapat dibaca sebagai gambar."); };
+      im.src = rd.result;
+    };
+    rd.readAsDataURL(el.files[0]);
+  }
+});
+form.addEventListener("click", function (e) {
+  var a = e.target.getAttribute("data-act"); if (!a) return;
+  var i = +e.target.getAttribute("data-i"), t;
+  if (a === "addTim") S.tim.push({ nama: "", pangkat: "", nip: "", jabatan: "" });
+  if (a === "delTim") { S.tim.splice(i, 1); if (+S.pj >= S.tim.length || +S.pj === i) S.pj = 0; else if (+S.pj > i) S.pj--; }
+  if (a === "addPen") S.penetapan.push(penetapanBaru());
+  if (a === "delPen") { if (!confirm("Hapus Penetapan " + (i + 1) + "?")) return; S.penetapan.splice(i, 1); }
+  if (a === "addKr") S.krono.push({ jam: "", jam2: "", lokasi: "", uraian: "", foto: "", fw: 0, fh: 0, ket: "" });
+  if (a === "delKr") { if ((S.krono[i].uraian || S.krono[i].foto) && !confirm("Hapus butir " + (i + 1) + "?")) return; S.krono.splice(i, 1); }
+  if (a === "upKr") { t = S.krono[i]; S.krono[i] = S.krono[i - 1]; S.krono[i - 1] = t; }
+  if (a === "dnKr") { t = S.krono[i]; S.krono[i] = S.krono[i + 1]; S.krono[i + 1] = t; }
+  if (a === "delFoto") { S.krono[i].foto = ""; S.krono[i].ket = ""; }
+  if (a === "autoKr") {
+    if (S.krono.some(function (k) { return k.uraian.trim() || k.foto; }) && !confirm("Kronologi yang sudah diisi (termasuk foto) akan diganti dengan draf baru. Lanjutkan?")) return;
+    S.krono = kronoAuto();
+  }
+  if (a === "resetOv") { var key = e.target.getAttribute("data-key"); if (S.ov[key] != null && !confirm("Buang suntingan manual pada bagian ini?")) return; delete S.ov[key]; }
+  semua();
+});
+document.getElementById("btnPrint").onclick = function () { window.print(); };
+document.getElementById("btnNew").onclick = function () {
+  if (!confirm("Mulai laporan baru? Isian laporan ini dihapus; tim pelaksana, Kepala BHP, dan DIPA tetap disimpan.")) return;
+  S = kosong(S); semua();
+};
+
+/* Unduh Word: berkas MHTML (.doc) supaya logo dan foto ikut tertanam */
+document.getElementById("btnWord").onclick = function () {
+  var css = "body{font:12pt/1.5 Arial,sans-serif}p{margin:0 0 6pt;text-align:justify}.ctr,.ctr p{text-align:center}.ph{color:#c00000}table{border-collapse:collapse}" +
+    "table.b td,table.b th{border:1px solid #000;padding:3pt 5pt;vertical-align:top;font-size:10pt}table.kop{width:100%;border-bottom:3px double #000}table.kop td{text-align:center;vertical-align:middle}" +
+    "table.ttd{width:100%}table.ttd td{width:50%;text-align:center;vertical-align:top}table.foto{width:100%}table.foto td{width:50%;text-align:center;vertical-align:top;font-size:9pt;padding:4pt}.pb{display:none}" +
+    "@page{size:21cm 29.7cm;margin:2cm 2cm 2.5cm 3cm}";
+  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>' + css + "</style></head><body>" + buildPaper(true) + "</body></html>";
+  function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
+  function lipat(s) { return s.replace(/(.{76})/g, "$1\r\n"); }
+  var bd = "----=_BHP_LAPORAN", base = "file:///C:/laporan/", nl = "\r\n";
+  function bagian(nama, tipe, data) { return "--" + bd + nl + "Content-Location: " + base + nama + nl + "Content-Transfer-Encoding: base64" + nl + "Content-Type: " + tipe + nl + nl + lipat(data) + nl + nl; }
+  var out = "MIME-Version: 1.0" + nl + 'Content-Type: multipart/related; boundary="' + bd + '"' + nl + nl + bagian("laporan.htm", 'text/html; charset="utf-8"', b64(html)) + bagian("logo.png", "image/png", LOGO.split(",")[1]);
+  S.krono.filter(function (k) { return k.foto; }).forEach(function (k, i) { out += bagian("foto" + i + ".jpg", "image/jpeg", k.foto.split(",")[1]); });
+  out += "--" + bd + "--" + nl;
+  var nama = "Laporan " + (S.jenis === "penyumpahan" ? "Penyumpahan " + (S.penetapan[0].wali.trim() || "") : jenisOf(S.jenis).label);
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([out], { type: "application/msword" }));
+  a.download = nama.trim().replace(/[\/\\:*?"<>|]/g, "-") + (S.tglKegiatan ? " " + S.tglKegiatan : "") + ".doc";
+  document.body.appendChild(a); a.click(); a.remove();
+};
+
+renderForm(); renderPaper();
+</script>
+</body>
+</html>
