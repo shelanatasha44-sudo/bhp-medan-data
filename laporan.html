@@ -186,7 +186,7 @@ function kosong(lama) {
     tim: lama.tim || [{ nama: "", pangkat: "", nip: "", jabatan: "" }], pj: lama.pj || 0,
     kepala: lama.kepala || (typeof PEGAWAI !== "undefined" ? ((PEGAWAI.filter(function (p) { return /^Kepala BHP/i.test(p.jabatan); })[0] || {}).nama || "") : ""),
     penetapan: [penetapanBaru()],
-    judulLain: "", objek: "", catatanAI: "",
+    judulLain: "", objek: "", catatanAI: "", cerita: "",
     ruj: {},
     krono: [{ jam: "", jam2: "", lokasi: "", uraian: "", foto: "", fw: 0, fh: 0, ket: "", tgl: "", grup: "" }],
     ov: {}
@@ -322,7 +322,7 @@ function ringkasData() {
     dasar_kegiatan: peny ? undefined : S.objek,
     penetapan: peny ? S.penetapan.map(function (p) { return { perkara: p.jenis, pengadilan: p.pn, nomor: p.nomor, tanggal: p.tgl, wali_atau_pengampu: p.wali, anak_atau_terampu: p.anak, hubungan: p.hubungan, alamat: p.alamat,
       hasil: hasilOf(p.hasil).label, alasan: alasan(p), agama_sumpah: p.agama, saksi: p.saksi, harta: p.harta, nilai_harta: p.nilai, pnbp: p.pnbp, latar: p.latar }; }) : undefined,
-    catatan_pegawai: S.catatanAI || ""
+    catatan_pegawai: [S.catatanAI, S.cerita].filter(Boolean).join("\n") || ""
   };
 }
 function jalankanAI(nama, janji, terap) {
@@ -361,6 +361,106 @@ function aiFoto() {
     return n + " foto dibaca. Jam, lokasi, dan uraian yang kosong sudah diisi; isian yang sudah Anda tulis tidak diubah. Periksa di langkah Kronologi.";
   });
 }
+/* ---------- Cerita kegiatan: diketik atau didiktekan (suara → teks, bahasa Indonesia) ---------- */
+var suara = { rek: null, aktif: false, sementara: "" };
+function bisaSuara() { return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
+/* Perintah lisan untuk tanda baca, karena dikte tidak menambahkan tanda baca sendiri */
+function rapikanDikte(t) {
+  t = " " + t.trim() + " ";
+  t = t.replace(/\s+(baris baru|paragraf baru|ganti baris)\s+/gi, "\n")
+       .replace(/\s+(titik dua)\s+/gi, ": ")
+       .replace(/\s+(titik koma)\s+/gi, "; ")
+       .replace(/\s+(titik)(?=\s)/gi, ".")
+       .replace(/\s+(koma)(?=\s)/gi, ",")
+       .replace(/\s+(tanda tanya)(?=\s)/gi, "?")
+       .replace(/\s+(garis miring)\s+/gi, "/");
+  return t.trim();
+}
+function tambahCerita(teks) {
+  if (!teks) return;
+  var c = S.cerita || "", awalBaris = /^\s*(baris baru|paragraf baru|ganti baris)\b/i.test(teks);
+  teks = rapikanDikte(teks.replace(/^\s*(baris baru|paragraf baru|ganti baris)\b/i, ""));
+  if (!teks) { if (awalBaris && c) { S.cerita = c.replace(/\s+$/, "") + "\n"; simpan(); } return; }
+  var sambung = !c || /\n$/.test(c) ? "" : awalBaris ? "\n" : " ";
+  if (!c.trim() || /[.?!\n]\s*$/.test(c)) teks = teks.charAt(0).toUpperCase() + teks.slice(1);
+  S.cerita = c + sambung + teks;
+  var ta = document.querySelector('[data-k="cerita"]'); if (ta) { ta.value = S.cerita; ta.scrollTop = ta.scrollHeight; }
+  simpan();
+}
+function aturTombolSuara() {
+  var b = document.getElementById("btnSuara"), z = document.getElementById("suaraSementara");
+  if (b) { b.textContent = suara.aktif ? "■ Berhenti merekam" : "🎤 Bicara"; b.className = suara.aktif ? "del" : "pri"; }
+  if (z) z.textContent = suara.aktif ? (suara.sementara ? "… " + suara.sementara : "Mendengarkan… silakan bicara.") : "";
+}
+function toggleSuara() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert("Browser ini belum mendukung dikte suara. Gunakan Google Chrome, atau tekan ikon mikrofon pada keyboard ponsel (Gboard) lalu bicara."); return; }
+  if (suara.aktif) { suara.aktif = false; try { suara.rek.stop(); } catch (e) {} aturTombolSuara(); return; }
+  var r = new SR(); suara.rek = r; suara.aktif = true; suara.sementara = "";
+  r.lang = "id-ID"; r.continuous = true; r.interimResults = true;
+  r.onresult = function (e) {
+    var sem = "";
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) tambahCerita(e.results[i][0].transcript); else sem += e.results[i][0].transcript;
+    }
+    suara.sementara = sem; aturTombolSuara();
+  };
+  r.onerror = function (e) {
+    if (e.error === "not-allowed" || e.error === "service-not-allowed") { suara.aktif = false; alert("Izin mikrofon ditolak. Izinkan mikrofon untuk situs ini di pengaturan browser."); }
+    else if (e.error === "network") { suara.aktif = false; alert("Dikte suara butuh koneksi internet."); }
+    aturTombolSuara();
+  };
+  /* Chrome berhenti sendiri setelah hening; lanjutkan selama tombol belum ditekan */
+  r.onend = function () { suara.sementara = ""; if (suara.aktif) { try { r.start(); } catch (e) { suara.aktif = false; } } aturTombolSuara(); };
+  try { r.start(); } catch (e) { suara.aktif = false; }
+  aturTombolSuara();
+}
+function kartuCerita() {
+  return '<div class="item" style="border-left-color:var(--navy)"><h3>Ceritakan kegiatan</h3>' +
+    '<p class="hint">Ceritakan apa saja yang terjadi, urut dari awal sampai selesai: jam tiba, siapa yang ditemui, apa yang dibicarakan, hasilnya, dan kendala. Boleh dengan bahasa sehari-hari; tekan <b>🎤 Bicara</b> untuk mendikte. Ucapkan "titik", "koma", atau "baris baru" untuk tanda baca.</p>' +
+    '<textarea class="tall" data-k="cerita" placeholder="Contoh: jam sepuluh lewat tim sampai di kantor lurah Sei Putih Tengah, diterima Pak Lurah, terus diantar ke rumah wali di Jalan Panci nomor 24…">' + esc(S.cerita || "") + "</textarea>" +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><button type="button" id="btnSuara" data-act="suara" class="pri">🎤 Bicara</button>' +
+    (S.cerita ? '<button type="button" class="sm del" data-act="hapusCerita">Kosongkan</button>' : "") +
+    '<span class="hint" id="suaraSementara" aria-live="polite" style="margin:0"></span></div>' +
+    (bisaSuara() ? "" : '<p class="hint">Dikte suara tidak tersedia di browser ini; gunakan Chrome, atau ikon mikrofon pada keyboard ponsel.</p>') +
+    (isAdmin() ? '<p class="hint">Setelah selesai bercerita, buka langkah <b>Otomatis</b> lalu tekan <b>Susun dari cerita</b>.</p>' : "") + "</div>";
+}
+function aiCerita() {
+  if (!(S.cerita || "").trim()) { ai.pesan = "Cerita kegiatan masih kosong. Isi di langkah Kronologi."; ai.galat = true; renderForm(); return; }
+  jalankanAI("cerita", function () {
+    var butir = S.krono.map(function (k, i) { return { i: i, tanggal: k.tgl || "", jam: k.jam, lokasi: k.lokasi, uraian: k.uraian, ada_foto: !!k.foto, keterangan_foto: k.ket }; });
+    return panggilClaude([{ type: "text", text: "Data kegiatan:\n" + JSON.stringify(ringkasData()) +
+      "\n\nButir kronologi yang sudah ada (sebagian dari foto ber-cap waktu):\n" + JSON.stringify(butir) +
+      "\n\nCerita pegawai (bisa hasil dikte suara, bahasa lisan, mungkin tanpa tanda baca):\n\"\"\"\n" + S.cerita + "\n\"\"\"\n\n" +
+      "Susun ulang menjadi bagian laporan kegiatan dinas BHP Medan yang runtut dan mengalir, dengan bahasa Indonesia baku dan pilihan kata yang tepat untuk laporan resmi. " +
+      "Ubah bahasa lisan menjadi kalimat laporan (misalnya \"jam sepuluh lewat\" menjadi pukul yang tepat bila jelas). Jangan menambah fakta yang tidak ada di cerita, data, atau butir yang ada. " +
+      "Kronologi: satu butir per kejadian, urut waktu. Bila sebuah butir sama dengan butir yang sudah ada, pakai indeks i-nya agar fotonya tetap; bila baru, isi i dengan null. " +
+      "Uraian ditulis tanpa menyebut jam (aplikasi menambahkan \"Pada pukul … WIB,\"), diawali kata seperti \"Tim\". Kelompokkan dengan sub-judul bila ada beberapa wali/pengampu atau tempat. " +
+      'Balas dengan JSON: {"kronologi":[{"i":<indeks atau null>,"tgl":"YYYY-MM-DD atau kosong","jam":"HH:MM atau kosong","jam2":"HH:MM atau kosong","lokasi":"...","grup":"sub-judul atau kosong","uraian":"..."}],' +
+      '"hasil":["butir hasil yang dicapai"],"simpulan":"satu-dua paragraf","saran":"satu paragraf","umum_tambahan":"satu paragraf latar belakang singkat bila cerita memuatnya, atau kosong"}' }]);
+  }, function (j) {
+    if (!Array.isArray(j.kronologi) || !j.kronologi.length) throw new Error("Kronologi tidak dihasilkan. Lengkapi cerita lalu coba lagi.");
+    var lama = S.krono.slice(), dipakai = {};
+    var baru = j.kronologi.map(function (x) {
+      var k = (x.i != null && lama[x.i]) ? lama[x.i] : { jam: "", jam2: "", lokasi: "", uraian: "", foto: "", fw: 0, fh: 0, ket: "", tgl: "", grup: "" };
+      if (x.i != null) dipakai[x.i] = 1;
+      return Object.assign({}, k, {
+        tgl: /^\d{4}-\d{2}-\d{2}$/.test(x.tgl || "") ? x.tgl : k.tgl, jam: /^\d{2}:\d{2}$/.test(x.jam || "") ? x.jam : k.jam,
+        jam2: /^\d{2}:\d{2}$/.test(x.jam2 || "") ? x.jam2 : k.jam2, lokasi: x.lokasi ? String(x.lokasi) : k.lokasi,
+        grup: x.grup ? String(x.grup) : k.grup, uraian: x.uraian ? String(x.uraian) : k.uraian, src: k.src === "berkas" && x.jam ? "ai" : k.src
+      });
+    });
+    lama.forEach(function (k, i) { if (!dipakai[i] && (k.foto || k.uraian.trim())) baru.push(k); });
+    S.krono = baru.filter(function (k) { return k.uraian.trim() || k.foto; });
+    if (!S.krono.length) S.krono = lama;
+    if (Array.isArray(j.hasil) && j.hasil.length) S.ov.hasil = j.hasil.map(String).join("\n");
+    if (j.simpulan) S.ov.simpulan = String(j.simpulan);
+    if (j.saran) S.ov.saran = String(j.saran);
+    if (j.umum_tambahan) { var b = baris(T("umum")), akhir = b.pop(); S.ov.umum = b.concat([String(j.umum_tambahan).replace(/\n+/g, " "), akhir]).join("\n"); }
+    return "Laporan disusun dari cerita: " + S.krono.length + " butir kronologi, Hasil, Simpulan, dan Saran. Periksa di langkah Kronologi dan Naskah.";
+  });
+}
+
 function aiNaskah() {
   jalankanAI("naskah", function () {
     var kr = S.krono.filter(function (k) { return k.uraian.trim(); }).map(function (k) { return { tanggal: k.tgl || S.tglKegiatan, jam: k.jam, lokasi: k.lokasi, kelompok: k.grup, uraian: k.uraian }; });
@@ -840,7 +940,7 @@ function renderForm() {
       area("Dasar perkara / objek (putusan, penetapan, surat) — opsional", "objek", "mis. Putusan Pengadilan Niaga pada Pengadilan Negeri Medan Nomor: … tanggal …") + "</div>";
   }
 
-  h += '<div class="card"><h2>5. Kronologi Kegiatan <button class="sm" data-act="addKr">+ Tambah</button></h2>' +
+  h += '<div class="card"><h2>5. Kronologi Kegiatan <button class="sm" data-act="addKr">+ Tambah</button></h2>' + kartuCerita() +
     '<div class="item" style="margin-top:0"><h3>Unggah semua foto sekaligus</h3><p class="hint">Pilih seluruh foto Timemark/kamera. Aplikasi membaca tanggal dan jam tiap foto, lalu menyusun butir kronologi berurutan dan membaginya per hari. Anda tinggal menulis lokasi dan uraian.</p>' +
     '<input type="file" accept="image/*" multiple id="fotoBanyak" style="margin-top:8px">' + (S.info ? '<p class="hint" style="color:var(--ok)"><b>' + esc(S.info) + "</b></p>" : "") + "</div>" +
     (peny ? '<button class="sm" data-act="autoKr">Susun kronologi otomatis dari data penetapan</button><p class="hint">Hasilnya draf yang bisa diedit. Klik lagi bila data penetapan berubah. Lokasi tiap butir otomatis menjadi daftar "Tempat Kegiatan".</p>' : '<p class="hint">Lokasi tiap butir otomatis menjadi daftar "Tempat Kegiatan".</p>');
@@ -859,7 +959,9 @@ function renderForm() {
   var tb = function (act, nama, label) { return '<button class="pri" data-act="' + act + '"' + (ai.sibuk ? " disabled" : "") + ">" + (ai.sibuk === nama ? "Sedang memproses…" : label) + "</button>"; };
   h += '<div class="card"><h2>AI. Penyusunan Otomatis</h2>' +
     '<details class="hint"><summary style="cursor:pointer">Penjelasan</summary><p class="hint">Fitur ini memakai AI (Claude, Anthropic) untuk membaca foto dan data laporan, lalu mengisi bagian yang masih kosong. Data dan foto dikirim ke layanan Claude melalui server aplikasi hanya saat tombol ditekan. Kunci API tersimpan di server, tidak di perangkat ini. Hasilnya tetap harus diperiksa.</p></details>' +
-    area("Catatan lapangan (opsional)", "catatanAI", "Tulis bebas: siapa yang ditemui, apa yang terjadi, kendala, hal yang perlu ditonjolkan…") +
+    '<div class="item"><h3>Susun dari cerita</h3><p class="hint">Mengubah cerita kegiatan (diketik atau didiktekan di langkah Kronologi) menjadi kronologi, Hasil, Simpulan, dan Saran dengan bahasa laporan yang runtut. Foto yang sudah ada tetap dipakai.</p>' +
+      ((S.cerita || "").trim() ? '<p class="hint">Cerita: ' + esc((S.cerita || "").trim().split(/\s+/).length) + " kata.</p>" : '<p class="hint" style="color:var(--bad)">Cerita masih kosong.</p>') +
+      '<div style="margin-top:8px">' + tb("aiCerita", "cerita", "Susun dari cerita") + "</div></div>" +
     '<div class="item"><h3>1. Baca foto, susun kronologi</h3><p class="hint">Membaca cap waktu dan alamat pada foto Timemark, mengurutkan, lalu menulis lokasi, uraian, dan keterangan foto.</p><div style="margin-top:8px">' + tb("aiFoto", "foto", "Baca " + S.krono.filter(function (k) { return k.foto; }).length + " foto") + "</div></div>" +
     '<div class="item"><h3>2. Tulis Hasil, Simpulan, dan Saran</h3><p class="hint">Disusun dari kronologi dan data penetapan. Jalankan setelah kronologi terisi.</p><div style="margin-top:8px">' + tb("aiNaskah", "naskah", "Susun otomatis") + "</div></div>" +
     (S.jenis === "kepailitan" && S.ruj && S.ruj.urus && S.ruj.urus.teks ? '<div class="item"><h3>3. Ringkas posisi terakhir perkara</h3><p class="hint">Dari Laporan Pengurusan Kepailitan yang diunggah, masuk ke bagian Umum.</p><div style="margin-top:8px">' + tb("aiPosisi", "posisi", "Ringkas otomatis") + "</div></div>" : "") +
@@ -884,6 +986,7 @@ function renderForm() {
   var el = document.getElementById("form");
   el.innerHTML = nav + h.replace(/<h2>(\d+|AI)\. /g, "<h2>") + foot;
   Array.prototype.forEach.call(el.querySelectorAll(".card"), function (c, i) { if (peta[i] !== st) c.style.display = "none"; });
+  aturTombolSuara();
   if (!isAdmin()) Array.prototype.forEach.call(el.querySelectorAll(".card"), function (c) { if (/Penyusunan Otomatis/.test(c.querySelector("h2").textContent)) c.remove(); });
 }
 
@@ -1082,6 +1185,9 @@ form.addEventListener("click", function (e) {
   if (a === "aiFoto") { aiFoto(); return; }
   if (a === "aiNaskah") { aiNaskah(); return; }
   if (a === "aiPosisi") { aiPosisi(); return; }
+  if (a === "aiCerita") { aiCerita(); return; }
+  if (a === "suara") { toggleSuara(); return; }
+  if (a === "hapusCerita") { if (!confirm("Kosongkan cerita kegiatan?")) return; S.cerita = ""; }
   if (a === "step") { S.step = i; simpan(); renderForm(); document.querySelector(".steps").scrollIntoView({ block: "nearest" }); return; }
   if (a === "addTim") S.tim.push({ nama: "", pangkat: "", nip: "", jabatan: "" });
   if (a === "delTim") { S.tim.splice(i, 1); if (+S.pj >= S.tim.length || +S.pj === i) S.pj = 0; else if (+S.pj > i) S.pj--; }
