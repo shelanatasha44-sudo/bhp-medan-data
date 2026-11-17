@@ -187,7 +187,7 @@ function kosong(lama) {
     tim: lama.tim || [{ nama: "", pangkat: "", nip: "", jabatan: "" }], pj: lama.pj || 0,
     kepala: lama.kepala || (typeof PEGAWAI !== "undefined" ? ((PEGAWAI.filter(function (p) { return /^Kepala BHP/i.test(p.jabatan); })[0] || {}).nama || "") : ""),
     penetapan: [penetapanBaru()],
-    judulLain: "", objek: "", catatanAI: "", cerita: "",
+    judulLain: "", objek: "", catatanAI: "", cerita: "", tugas: "",
     ruj: {},
     krono: [{ jam: "", jam2: "", lokasi: "", uraian: "", foto: "", fw: 0, fh: 0, ket: "", tgl: "", grup: "" }],
     ov: {}
@@ -258,6 +258,7 @@ function unggahBanyak(files) {
         var tg = hasil.filter(function (k) { return k.src !== "berkas"; }).map(function (k) { return k.tgl; }).sort();
         if (tg.length && !S.tglKegiatan) { S.tglKegiatan = tg[0]; if (tg[tg.length - 1] !== tg[0] && !S.tglSelesai) S.tglSelesai = tg[tg.length - 1]; }
         var n = { exif: 0, nama: 0, berkas: 0 }; hasil.forEach(function (k) { n[k.src]++; });
+        if (isAdmin() && hasil.length) setTimeout(aiFoto, 0);
         S.info = hasil.length + " foto diurutkan menurut waktu: " + n.exif + " dari data kamera" + (n.nama ? ", " + n.nama + " dari nama berkas" : "") + (n.berkas ? ", " + n.berkas + " dari tanggal berkas (jamnya perlu diperiksa)" : "") + ".";
         semua();
       });
@@ -537,7 +538,7 @@ function bacaST(teks) {
     var no = m[2].replace(/\s+/g, " ").trim(); if (seen[no]) continue; seen[no] = 1;
     r.penetapan.push({ pn: m[1].trim(), nomor: no, tgl: isoTgl(m[3], m[4], m[5]), jenis: /ampu/i.test(m[6]) ? "pengampuan" : "perwalian", wali: m[7].trim().replace(/\s+(pada|yang)\b.*$/i, "") });
   }
-  var u = /Untuk\s*:?\s*(?:1\.\s*)?(.{0,700}?)(?=\s*(?:2\.\s*)?Selama melaksanakan)/i.exec(t);
+  var u = /\bUntuk\s*:\s*(?:1\.\s*)?(.{0,700}?)(?=\s*(?:2\.\s*)?[Ss]elama melaksanakan)/.exec(t);
   if (u) {
     r.untuk = u[1].trim();
     var w = /hari\s+[A-Za-z]+(?:\s+s\.?d\.?\s+[A-Za-z]+)?\s*(?:\/|,)?\s*(?:tanggal\s+)?(\d{1,2})(?:\s+([A-Za-z]+))?(?:\s+(\d{4}))?(?:\s*(?:s\.?d\.?|-|sampai dengan)\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4}))?(?:\s+([A-Za-z]+)\s+(\d{4}))?/i.exec(r.untuk);
@@ -572,6 +573,19 @@ function teksPdf(buf) {
     return Promise.all(hal).then(function (a) { return a.join("\n"); });
   });
 }
+/* Kenali jenis kegiatan dari isi Surat Tugas */
+function tebakJenis(r) {
+  var u = (r.untuk || "").toLowerCase();
+  if (r.penetapan.length && /wali|ampu/.test(u + " " + r.penetapan.map(function (q) { return q.jenis; }).join(" "))) return "penyumpahan";
+  if (/pailit|kurator|kreditor|boedel/.test(u)) return "kepailitan";
+  if (/tidak hadir|afwezig/.test(u)) return "takhadir";
+  if (/tak terurus|onbeheerde/.test(u)) return "takterurus";
+  if (/sosialisasi|penyuluhan/.test(u)) return "sosialisasi";
+  if (/pendampingan|monitoring/.test(u)) return "pendampingan";
+  if (/rapat/.test(u)) return "rapat";
+  if (/koordinasi|konsultasi/.test(u)) return "koordinasi";
+  return "";
+}
 function unggahST(file) {
   var buka = /\.docx$/i.test(file.name) ? file.arrayBuffer().then(teksDocx) : /\.pdf$/i.test(file.name) ? file.arrayBuffer().then(teksPdf) : Promise.resolve("");
   buka.catch(function () { return ""; }).then(function (teks) {
@@ -579,6 +593,9 @@ function unggahST(file) {
     S.ruj = S.ruj || {};
     S.ruj.st = { nama: file.name, terbaca: !!(r && (r.nomor || r.penetapan.length || r.nip.length)) };
     if (r) {
+      var jn = tebakJenis(r);
+      if (jn && jn !== S.jenis) { S.jenis = jn; S.ov = {}; isi.push("jenis kegiatan (" + jenisOf(jn).label + ")"); }
+      if (r.untuk) S.tugas = r.untuk.replace(/\s*;\s*$/, "");
       if (r.nomor) { S.stNomor = r.nomor; isi.push("nomor"); }
       if (r.tanggal) { S.stTanggal = r.tanggal; isi.push("tanggal surat tugas"); }
       if (r.mulai) { S.tglKegiatan = r.mulai; S.tglSelesai = r.selesai || ""; isi.push("tanggal kegiatan"); }
@@ -594,7 +611,10 @@ function unggahST(file) {
         S.penetapan = ada.concat(baru);
         isi.push(baru.length + " penetapan" + (ada.length ? " baru (isian penetapan yang sudah ada tidak diubah)" : ""));
       }
-      if (r.untuk && S.jenis !== "penyumpahan" && !S.objek.trim()) S.catatanAI = (S.catatanAI ? S.catatanAI + "\n" : "") + "Tugas menurut Surat Tugas: " + r.untuk;
+      /* b) draf kronologi otomatis dari data penetapan bila kronologi masih kosong */
+      if (S.jenis === "penyumpahan" && S.penetapan.some(function (q) { return q.nomor.trim(); }) && !S.krono.some(function (k) { return k.uraian.trim() || k.foto; })) {
+        S.krono = kronoAuto(); isi.push("draf kronologi");
+      }
     }
     S.ruj.st.info = isi.length ? "Terisi otomatis dari Surat Tugas: " + isi.join(", ") + ". Periksa kembali." : "Isi Surat Tugas tidak terbaca otomatis (mungkin hasil pindai). Isi data secara manual.";
     semua();
@@ -681,7 +701,7 @@ var AUTO = {
     if (S.jenis !== "penyumpahan") {
       var rk = rujukan();
       t = rk && rk.umum.length ? rk.umum.slice() : j.umum.slice();
-      t.push("Adapun kegiatan yang dilaksanakan oleh Tim Balai Harta Peninggalan Medan pada tanggal " + tgl(S.tglKegiatan, "tanggal kegiatan") + (S.objek.trim() ? " merupakan tindak lanjut atas " + S.objek.trim() + "." : " adalah [uraian singkat latar belakang kegiatan]."));
+      t.push("Adapun kegiatan yang dilaksanakan oleh Tim Balai Harta Peninggalan Medan pada tanggal " + tgl(S.tglKegiatan, "tanggal kegiatan") + (S.objek.trim() ? " merupakan tindak lanjut atas " + S.objek.trim() + "." : S.tugas ? " adalah " + kecil(S.tugas).replace(/[.;]$/, "") + "." : " adalah [uraian singkat latar belakang kegiatan]."));
       if (rk && rk.saran.length) t.push("Kegiatan ini merupakan kelanjutan dari kegiatan sebelumnya, yang dalam laporannya menyarankan hal sebagai berikut: " + rk.saran.join(" "));
       t.push("Laporan ini disusun untuk mencatat pelaksanaan tugas tersebut di lapangan sebagai bahan pertanggungjawaban dan evaluasi.");
       return t.join("\n");
@@ -700,7 +720,7 @@ var AUTO = {
     return t.join("\n");
   },
   maksud: function () {
-    if (S.jenis !== "penyumpahan") return jenisOf(S.jenis).maksud.concat(S.objek.trim() ? ["Menindaklanjuti " + S.objek.trim() + "."] : []).join("\n") || "[maksud dan tujuan kegiatan]";
+    if (S.jenis !== "penyumpahan") return jenisOf(S.jenis).maksud.concat(S.tugas ? [S.tugas.replace(/[.;]$/, "") + (S.objek.trim() ? ";" : ".")] : [], S.objek.trim() ? ["Menindaklanjuti " + S.objek.trim() + "."] : []).join("\n") || "[maksud dan tujuan kegiatan]";
     var c = campur(), t = [];
     if (c.perwalian) t.push("Melaksanakan tugas pokok dan fungsi Balai Harta Peninggalan sebagai wali pengawas (toeziende voogd) dalam penyelenggaraan perwalian sesuai ketentuan Pasal 331 KUHPerdata;");
     if (c.pengampuan) t.push("Melaksanakan tugas pokok dan fungsi Balai Harta Peninggalan sebagai pengampu pengawas dalam penyelenggaraan pengampuan sesuai ketentuan Pasal 449 KUHPerdata;");
@@ -945,7 +965,8 @@ function renderForm() {
   var nFoto = S.krono.filter(function (k) { return k.foto; }).length, nIsi = S.krono.filter(function (k) { return k.uraian.trim(); }).length;
   h += '<div class="card"><h2>5. Cerita &amp; foto kegiatan</h2>' + kartuCerita() +
     '<div class="item" style="border-left-color:var(--navy)"><h3>Foto kegiatan</h3><p class="hint">Pilih semua foto sekaligus (Timemark/kamera). Urutan dan jam tersusun sendiri.</p>' +
-    '<input type="file" accept="image/*" multiple id="fotoBanyak" style="margin-top:8px">' + (S.info ? '<p class="hint" style="color:var(--ok)"><b>' + esc(S.info) + "</b></p>" : nFoto ? '<p class="hint">' + nFoto + " foto terunggah.</p>" : "") + "</div>";
+    '<input type="file" accept="image/*" multiple id="fotoBanyak" style="margin-top:8px">' + (S.info ? '<p class="hint" style="color:var(--ok)"><b>' + esc(S.info) + "</b></p>" : nFoto ? '<p class="hint">' + nFoto + " foto terunggah.</p>" : "") +
+    (isAdmin() && ai.sibuk === "foto" ? '<p class="hint"><b>Membaca isi foto (jam, lokasi, kegiatan)…</b></p>' : isAdmin() && ai.pesan && /foto/.test(ai.pesan) ? '<p class="hint" style="color:' + (ai.galat ? "var(--bad)" : "var(--ok)") + '"><b>' + esc(ai.pesan) + "</b></p>" : "") + "</div>";
   var hKr = '<p class="hint">Tiap butir menjadi satu kalimat “Pada pukul … WIB, …” di laporan.</p>' +
     (peny ? '<button class="sm" data-act="autoKr">Susun kronologi otomatis dari data penetapan</button><p class="hint">Hasilnya draf yang bisa diedit. Klik lagi bila data penetapan berubah. Lokasi tiap butir otomatis menjadi daftar "Tempat Kegiatan".</p>' : '<p class="hint">Lokasi tiap butir otomatis menjadi daftar "Tempat Kegiatan".</p>');;
   S.krono.forEach(function (kr, i) {
