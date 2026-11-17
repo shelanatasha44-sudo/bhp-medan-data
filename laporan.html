@@ -147,6 +147,7 @@ function kosong(lama) {
     kepala: lama.kepala || "",
     penetapan: [penetapanBaru()],
     judulLain: "", objek: "",
+    ruj: {},
     krono: [{ jam: "", jam2: "", lokasi: "", uraian: "", foto: "", fw: 0, fh: 0, ket: "", tgl: "", grup: "" }],
     ov: {}
   };
@@ -222,6 +223,73 @@ function unggahBanyak(files) {
     });
   });
 }
+/* ---------- rujukan wajib laporan kepailitan ---------- */
+/* Ambil teks dari berkas .docx (zip) langsung di browser; tidak ada yang dikirim ke mana pun */
+function teksDocx(buf) {
+  var v = new DataView(buf), i = v.byteLength - 22, td = new TextDecoder();
+  while (i >= 0 && v.getUint32(i, true) !== 0x06054b50) i--;
+  if (i < 0) return Promise.reject(new Error("bukan docx"));
+  var cnt = v.getUint16(i + 10, true), off = v.getUint32(i + 16, true);
+  for (var k = 0; k < cnt; k++) {
+    var nl = v.getUint16(off + 28, true), el = v.getUint16(off + 30, true), cl = v.getUint16(off + 32, true);
+    if (td.decode(new Uint8Array(buf, off + 46, nl)) === "word/document.xml") {
+      var lo = v.getUint32(off + 42, true), cs = v.getUint32(off + 20, true), meth = v.getUint16(off + 10, true);
+      var ds = lo + 30 + v.getUint16(lo + 26, true) + v.getUint16(lo + 28, true), data = new Uint8Array(buf, ds, cs);
+      var pr = meth === 0 ? Promise.resolve(buf.slice(ds, ds + cs)) : new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer();
+      return pr.then(function (ab) {
+        var x = td.decode(ab).replace(/<w:tab\/>/g, "\t").replace(/<\/w:tc>/g, " | ").replace(/<\/w:p>/g, "\n").replace(/<[^>]+>/g, "");
+        x = x.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+        return x.replace(/\n[\s|]*\n+/g, "\n").trim();
+      });
+    }
+    off += 46 + nl + el + cl;
+  }
+  return Promise.reject(new Error("bukan docx"));
+}
+function kurangRuj() {
+  if (S.jenis !== "kepailitan") return [];
+  var k = [], r = S.ruj || {};
+  if (!(r.urus && r.urus.nama)) k.push("Laporan Pengurusan Kepailitan terakhir");
+  if (!(r.keg && r.keg.nama)) k.push("Laporan Kegiatan terakhir");
+  return k;
+}
+function bolehCetak() {
+  var k = kurangRuj(); if (!k.length) return true;
+  alert("Untuk laporan kepailitan, unggah lebih dahulu:\n- " + k.join("\n- "));
+  S.step = 2; simpan(); renderForm(); return false;
+}
+/* Petik bagian laporan kegiatan terakhir supaya isi laporan baru bersambung */
+var _rk = { kunci: "", hasil: null };
+function rujukan() {
+  var r = S.ruj && S.ruj.keg;
+  if (S.jenis !== "kepailitan" || !r || !r.teks) return null;
+  if (_rk.kunci === r.nama + r.teks.length) return _rk.hasil;
+  var L = r.teks.split("\n").map(function (x) { return x.trim(); }).filter(Boolean), no = "^(\\w{1,3}[.)]\\s*)?";
+  function bagian(awal, akhir) {
+    var a = -1, A = new RegExp(no + awal + "$", "i"), Z = new RegExp(no + akhir + "$", "i");
+    for (var i = 0; i < L.length; i++) { if (a < 0) { if (A.test(L[i])) a = i; } else if (Z.test(L[i])) return L.slice(a + 1, i); }
+    return a >= 0 ? L.slice(a + 1, a + 12) : [];
+  }
+  var h = {
+    umum: bagian("Umum", "Maksud dan Tujuan").filter(function (x) { return x.length > 60 && !/^(Adapun kegiatan|Laporan ini (disusun|merekam))/i.test(x); }),
+    dasar: bagian("Dasar( Hukum)?", "(Pelaksanaan Kegiatan|Kegiatan yang Dilaksanakan.*)").filter(function (x) { return x.length > 8 && !/Surat (Tugas|Perintah)|Daftar Isian Pelaksanaan Anggaran|\|/i.test(x); }).map(function (x) { return x.replace(/[.;]?$/, ";"); }),
+    saran: bagian("Saran:?", "Penutup").filter(function (x) { return x.length > 20; })
+  };
+  _rk = { kunci: r.nama + r.teks.length, hasil: h };
+  return h;
+}
+function unggahRuj(slot, file) {
+  var docx = /\.docx$/i.test(file.name);
+  (docx ? file.arrayBuffer().then(teksDocx) : Promise.resolve("")).catch(function () { return ""; }).then(function (teks) {
+    S.ruj = S.ruj || {};
+    S.ruj[slot] = { nama: file.name, teks: teks.slice(0, 80000), terbaca: !!teks };
+    if (!S.objek.trim()) {
+      var m = /Putusan[^\n]{0,160}?Nomor\s*:?\s*\S+[^\n]{0,60}?tanggal\s+\d{1,2}\s+[A-Za-z]+\s+\d{4}/.exec(teks);
+      if (m) S.objek = m[0].replace(/\s+/g, " ");
+    }
+    semua();
+  });
+}
 function simpan() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); }
   catch (e) { try { var c = JSON.parse(JSON.stringify(S)); c.krono.forEach(function (k) { k.foto = ""; }); localStorage.setItem(KEY, JSON.stringify(c)); } catch (e2) {} }
@@ -269,8 +337,10 @@ var AUTO = {
   umum: function () {
     var t = [], j = jenisOf(S.jenis);
     if (S.jenis !== "penyumpahan") {
-      t = j.umum.slice();
+      var rk = rujukan();
+      t = rk && rk.umum.length ? rk.umum.slice() : j.umum.slice();
       t.push("Adapun kegiatan yang dilaksanakan oleh Tim Balai Harta Peninggalan Medan pada tanggal " + tgl(S.tglKegiatan, "tanggal kegiatan") + (S.objek.trim() ? " merupakan tindak lanjut atas " + S.objek.trim() + "." : " adalah [uraian singkat latar belakang kegiatan]."));
+      if (rk && rk.saran.length) t.push("Kegiatan ini merupakan kelanjutan dari kegiatan sebelumnya, yang dalam laporannya menyarankan hal sebagai berikut: " + rk.saran.join(" "));
       t.push("Laporan ini disusun untuk mencatat pelaksanaan tugas tersebut di lapangan sebagai bahan pertanggungjawaban dan evaluasi.");
       return t.join("\n");
     }
@@ -307,8 +377,9 @@ var AUTO = {
       t.push("Peraturan Pemerintah Nomor 45 Tahun 2024 tentang Jenis dan Tarif atas Jenis Penerimaan Negara Bukan Pajak yang Berlaku pada Kementerian Hukum dan Hak Asasi Manusia;");
       S.penetapan.forEach(function (p) { t.push(refPen(p) + " perihal penetapan " + ist(p).W + " An. " + ph(p.wali, "nama") + ";"); });
     } else {
-      t = jenisOf(S.jenis).dasar.slice();
-      if (S.objek.trim()) t.push(S.objek.trim() + ";");
+      var rd = rujukan();
+      t = rd && rd.dasar.length ? rd.dasar.slice() : jenisOf(S.jenis).dasar.slice();
+      if (S.objek.trim() && !(rd && rd.dasar.length)) t.push(S.objek.trim() + ";");
     }
     t.push("Daftar Isian Pelaksanaan Anggaran Balai Harta Peninggalan Medan Nomor: " + ph(S.dipaNomor, "nomor DIPA") + " tanggal " + tgl(S.dipaTanggal, "tanggal DIPA") + ";");
     t.push("Surat Tugas Kepala Balai Harta Peninggalan Medan Nomor: " + ph(S.stNomor, "nomor surat tugas") + " tanggal " + tgl(S.stTanggal, "tanggal surat tugas") + ".");
@@ -479,6 +550,19 @@ function renderForm() {
     });
     h += "</div>";
   } else {
+    if (S.jenis === "kepailitan") {
+      h += '<div class="card"><h2>4. Rujukan Wajib</h2><p class="hint">Unggah dua laporan terakhir perkara ini supaya isi laporan baru bersambung. Berkas hanya dibaca di perangkat ini dan tidak dikirim ke mana pun. Gunakan berkas Word (.docx) agar isinya terbaca.</p>';
+      [["urus", "Laporan Pengurusan Kepailitan terakhir"], ["keg", "Laporan Kegiatan terakhir"]].forEach(function (x) {
+        var r = (S.ruj || {})[x[0]];
+        h += '<div class="item ' + (r && r.nama ? (r.terbaca ? "ok" : "warn") : "bad") + '"><h3>' + x[1] + ' <span class="tag' + (r && r.nama ? "" : " man") + '">' + (r && r.nama ? "sudah diunggah" : "wajib") + "</span></h3>" +
+          '<input type="file" accept=".docx,.pdf" data-ruj="' + x[0] + '" style="margin-top:8px">' +
+          (r && r.nama ? '<p class="hint"><b>' + esc(r.nama) + "</b> — " + (r.terbaca ? "isi terbaca (" + r.teks.length.toLocaleString("id-ID") + " karakter)." : "isi tidak terbaca otomatis; unggah versi .docx agar bisa dipakai.") + "</p>" +
+            (r.terbaca ? "<details><summary class=\"hint\" style=\"cursor:pointer\">Lihat isi untuk rujukan</summary><textarea class=\"tall\" readonly>" + esc(r.teks) + "</textarea></details>" : "") : "") + "</div>";
+      });
+      var rr = rujukan();
+      if (rr) h += '<p class="hint" style="color:var(--ok)"><b>Diambil dari Laporan Kegiatan terakhir:</b> ' + rr.umum.length + " paragraf Umum, " + rr.dasar.length + " butir Dasar, " + rr.saran.length + " paragraf Saran (masuk sebagai kelanjutan). Periksa di langkah Naskah.</p>";
+      h += "</div>";
+    }
     h += '<div class="card"><h2>4. Objek Kegiatan</h2>' + inp("Judul laporan (kosong = bawaan)", "judulLain", "text", 'placeholder="' + esc(jenisOf(S.jenis).judul) + '"') +
       area("Dasar perkara / objek (putusan, penetapan, surat) — opsional", "objek", "mis. Putusan Pengadilan Niaga pada Pengadilan Negeri Medan Nomor: … tanggal …") + "</div>";
   }
@@ -504,7 +588,7 @@ function renderForm() {
     ovArea("A.1 Umum", "umum", "Satu paragraf per baris.", true) + ovArea("A.2 Maksud dan Tujuan", "maksud", "Satu butir per baris.") + ovArea("A.4 Dasar", "dasar", "Satu butir per baris.") +
     ovArea("C. Hasil yang Dicapai", "hasil", "Satu butir per baris.") + ovArea("D.1 Simpulan", "simpulan") + ovArea("D.2 Saran", "saran") + "</div>";
 
-  var st = Math.max(0, Math.min(4, +S.step || 0)), peta = [0, 0, 1, 2, 3, 4];
+  var st = Math.max(0, Math.min(4, +S.step || 0)), peta = S.jenis === "kepailitan" ? [0, 0, 1, 2, 2, 3, 4] : [0, 0, 1, 2, 3, 4];
   var nama = ["Kegiatan", "Tim", peny ? "Penetapan" : "Objek", "Kronologi", "Naskah"];
   var lead = ["Pilih jenis kegiatan, lalu isi tanggal dan surat tugas.", "Isi tim sekali saja — tersimpan untuk laporan berikutnya.",
     peny ? "Satu kartu per penetapan. Pilih hasilnya; kalimat laporan tersusun sendiri." : "Tulis judul dan dasar kegiatan.",
@@ -653,7 +737,7 @@ function buildPaper(word) {
 
 function renderPaper() {
   document.getElementById("paper").innerHTML = buildPaper(false);
-  var sisa = document.querySelectorAll("#paper .ph").length, stEl = document.getElementById("status");
+  var sisa = document.querySelectorAll("#paper .ph").length + kurangRuj().length, stEl = document.getElementById("status");
   stEl.textContent = sisa ? sisa + " isian belum lengkap" : "✓ Dokumen lengkap"; stEl.className = "status" + (sisa ? "" : " ok");
   /* kotak naskah yang masih "otomatis" ikut diperbarui */
   Array.prototype.forEach.call(document.querySelectorAll("textarea[data-ov]"), function (ta) {
@@ -690,6 +774,7 @@ form.addEventListener("change", function (e) {
     semua();
   }
   if (el.id === "fotoBanyak") { unggahBanyak(el.files); return; }
+  if (el.hasAttribute("data-ruj") && el.files[0]) { unggahRuj(el.getAttribute("data-ruj"), el.files[0]); return; }
   if (el.hasAttribute("data-foto") && el.files[0]) {
     var i = +el.getAttribute("data-foto");
     kecilkan(el.files[0], function (url, fw, fh) {
@@ -701,7 +786,7 @@ form.addEventListener("change", function (e) {
 form.addEventListener("click", function (e) {
   var btn = e.target.closest("[data-act]"); if (!btn) return;
   var a = btn.getAttribute("data-act"), i = +btn.getAttribute("data-i"), t;
-  if (a === "cetak") { window.print(); return; }
+  if (a === "cetak") { if (bolehCetak()) window.print(); return; }
   if (a === "step") { S.step = i; simpan(); renderForm(); document.querySelector(".steps").scrollIntoView({ block: "nearest" }); return; }
   if (a === "addTim") S.tim.push({ nama: "", pangkat: "", nip: "", jabatan: "" });
   if (a === "delTim") { S.tim.splice(i, 1); if (+S.pj >= S.tim.length || +S.pj === i) S.pj = 0; else if (+S.pj > i) S.pj--; }
@@ -722,7 +807,7 @@ form.addEventListener("click", function (e) {
 document.getElementById("brandLogo").src = LOGO;
 var selDok = document.getElementById("selDok"); selDok.value = S.dok || "laporan";
 selDok.onchange = function () { S.dok = selDok.value; simpan(); renderPaper(); };
-document.getElementById("btnPrint").onclick = function () { window.print(); };
+document.getElementById("btnPrint").onclick = function () { if (bolehCetak()) window.print(); };
 document.getElementById("btnNew").onclick = function () {
   if (!confirm("Mulai laporan baru? Isian laporan ini dihapus; tim pelaksana, Kepala BHP, dan DIPA tetap disimpan.")) return;
   S = kosong(S); semua();
@@ -730,6 +815,7 @@ document.getElementById("btnNew").onclick = function () {
 
 /* Unduh Word: berkas MHTML (.doc) supaya logo dan foto ikut tertanam */
 document.getElementById("btnWord").onclick = function () {
+  if (!bolehCetak()) return;
   var css = "body{font:12pt/1.5 Arial,sans-serif}p{margin:0 0 6pt;text-align:justify}.ctr,.ctr p{text-align:center}.ph{color:#c00000}table{border-collapse:collapse}" +
     "table.b td,table.b th{border:1px solid #000;padding:3pt 5pt;vertical-align:top;font-size:10pt}table.kop{width:100%;border-bottom:3px double #000}table.kop td{text-align:center;vertical-align:middle}" +
     "table.ttd{width:100%}table.ttd td{width:50%;text-align:center;vertical-align:top}table.foto{width:100%}table.foto td{width:50%;text-align:center;vertical-align:top;font-size:9pt;padding:4pt}.pb{display:none}" +

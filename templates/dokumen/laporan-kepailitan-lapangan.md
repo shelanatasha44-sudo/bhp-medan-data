@@ -10,3 +10,12 @@ Memakai kerangka `laporan-kegiatan.md` dengan perbedaan berikut:
 - **Hasil yang Dicapai**: butir temuan; bila ada, tabel **biaya yang timbul** (No., Uraian, Jumlah)
 
 Laporan pengurusan kepailitan kepada Hakim Pengawas berbentuk surat dan tidak memakai kerangka ini.
+
+## Rujukan wajib
+
+Sebelum laporan kepailitan dapat dicetak, aplikasi mewajibkan unggahan dua berkas perkara yang sama:
+
+1. Laporan Pengurusan Kepailitan terakhir;
+2. Laporan Kegiatan terakhir.
+
+Dari Laporan Kegiatan terakhir (.docx) aplikasi mengambil paragraf Umum, butir Dasar, dan Saran (dimasukkan sebagai kelanjutan). Nomor dan tanggal putusan pailit diambil dari salah satu berkas untuk mengisi dasar perkara.
