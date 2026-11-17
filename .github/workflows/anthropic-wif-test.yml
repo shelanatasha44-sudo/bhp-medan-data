@@ -1,32 +1,31 @@
-# Uji koneksi ke Claude API lewat Workload Identity Federation (tanpa kunci API).
-# GitHub menerbitkan token OIDC untuk workflow ini; Anthropic menukarnya dengan
-# token akses sesuai aturan federasi. Jalankan manual dari tab Actions, atau
-# otomatis saat skrip/workflow ini berubah.
-name: Uji koneksi Claude (WIF)
-on:
-  workflow_dispatch:
-  push:
-    paths:
-      - .github/scripts/anthropic_wif_test.py
-      - .github/workflows/anthropic-wif-test.yml
+# .github/workflows/anthropic-wif-test.yml
+name: anthropic-wif-test
+on: push
 permissions:
   id-token: write
   contents: read
 jobs:
-  uji:
+  call-claude:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install Anthropic SDK
-        run: pip install --upgrade anthropic
       - name: Fetch GitHub OIDC token
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const token = await core.getIDToken('https://api.anthropic.com');
+            core.setSecret(token);
+            core.exportVariable('JWT', token);
+      - name: Exchange for an Anthropic access token
         run: |
-          token=$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://api.anthropic.com" | jq -r .value)
-          echo "::add-mask::$token"
-          echo "JWT=$token" >> "$GITHUB_ENV"
-      - name: Call Claude
-        run: python .github/scripts/anthropic_wif_test.py
+          curl -sS https://api.anthropic.com/v1/oauth/token \
+            -H "content-type: application/json" \
+            --data @- <<JSON | jq 'with_entries(if (.key | test("token$")) then .value = "<redacted>" else . end)'
+          {
+            "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+            "assertion": "$JWT",
+            "federation_rule_id": "fdrl_01JwrZKsY8dytxxA2SL9G9FP",
+            "organization_id": "5a187c8c-5179-421b-aec7-1f61102bbd27",
+            "service_account_id": "svac_01Nkar3tVchT6jR3T7vnCHaw",
+            "workspace_id": "wrkspc_01Tw4nKp2vVdrsPjQyFuNujj"
+          }
+          JSON
