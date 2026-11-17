@@ -242,7 +242,7 @@ function kosong(lama) {
     tim: lama.tim || [{ nama: "", pangkat: "", nip: "", jabatan: "" }], pj: lama.pj || 0,
     kepala: lama.kepala || (typeof PEGAWAI !== "undefined" ? ((PEGAWAI.filter(function (p) { return /^Kepala BHP/i.test(p.jabatan); })[0] || {}).nama || "") : ""),
     penetapan: [penetapanBaru()],
-    judulLain: "", objek: "", catatanAI: "", cerita: "", tugas: "",
+    judulLain: "", objek: "", catatanAI: "", cerita: "", tugas: "", infoBerkas: "",
     ruj: {},
     krono: [{ jam: "", jam2: "", lokasi: "", uraian: "", foto: "", fw: 0, fh: 0, ket: "", tgl: "", grup: "" }],
     ov: {}
@@ -472,6 +472,12 @@ function toggleSuara() {
   try { r.start(); } catch (e) { suara.aktif = false; }
   aturTombolSuara();
 }
+function kartuBerkas() {
+  return '<div class="item" style="border-left-color:var(--navy);margin-bottom:12px"><h3>Berkas FULL / Berita Acara <span class="tag">opsional</span></h3>' +
+    '<p class="hint">Unggah berkas FULL Perwalian/Pengampu (BA Sumpah, BA Penghadapan, BA Harta), boleh beberapa sekaligus. Nama anak, hubungan, alamat, agama, nomor BA, tanggal sumpah, keterangan, dan harta terisi sendiri.</p>' +
+    (S.infoBerkas ? '<p class="hint" style="white-space:pre-line;color:var(--ok)"><b>' + esc(S.infoBerkas) + "</b></p>" : "") +
+    '<label class="unggah"><input type="file" accept=".docx,.pdf" multiple id="fileBerkas">📎 Pilih Berkas FULL</label></div>';
+}
 function kartuCerita() {
   return '<div class="item" style="border-left-color:var(--navy)"><h3>Ceritakan kegiatan</h3>' +
     '<p class="hint">Ceritakan apa saja yang terjadi, urut dari awal sampai selesai: jam tiba, siapa yang ditemui, apa yang dibicarakan, hasilnya, dan kendala. Boleh dengan bahasa sehari-hari; tekan <b>🎤 Bicara</b> untuk mendikte. Ucapkan "titik", "koma", atau "baris baru" untuk tanda baca.</p>' +
@@ -626,6 +632,87 @@ function teksPdf(buf) {
   return muat().then(function (lib) { return lib.getDocument({ data: buf }).promise; }).then(function (doc) {
     var hal = []; for (var i = 1; i <= doc.numPages; i++) hal.push(doc.getPage(i).then(function (p) { return p.getTextContent(); }).then(function (c) { return c.items.map(function (x) { return x.str; }).join(" "); }));
     return Promise.all(hal).then(function (a) { return a.join("\n"); });
+  });
+}
+/* ---------- Berkas FULL (BA Penyumpahan, BA Penghadapan, BA Harta) → isi hasil tiap penetapan ---------- */
+var ANGKA = { nol: 0, satu: 1, se: 1, dua: 2, tiga: 3, empat: 4, lima: 5, enam: 6, tujuh: 7, delapan: 8, sembilan: 9, sepuluh: 10, sebelas: 11 };
+function kataKeAngka(t) {
+  var w = String(t).toLowerCase().replace(/[^a-z ]/g, " ").split(/\s+/).filter(Boolean), total = 0, kini = 0, ok = false;
+  w.forEach(function (x) {
+    if (ANGKA[x] != null) { kini += ANGKA[x]; ok = true; }
+    else if (x === "belas") { kini = (kini || 1) + 10; ok = true; }
+    else if (x === "puluh") { kini = (kini || 1) * 10; ok = true; }
+    else if (x === "ratus" || x === "seratus") { kini = (kini || 1) * 100; ok = true; }
+    else if (x === "ribu" || x === "seribu") { total += (kini || 1) * 1000; kini = 0; ok = true; }
+  });
+  return ok ? total + kini : null;
+}
+function bacaBerkas(teks) {
+  var t = String(teks).replace(/\s*\|\s*/g, " ").replace(/[ \t]+/g, " "), r = {}, m;
+  if ((m = /Penetapan\s+(Pengadilan\s+(?:Negeri|Agama)\s+[A-Za-z .]+?)\s+Nomor\s*:\s*([\w.\/-]+Pdt\.P\/\d{4}\/[A-Za-z.]+(?:\s?[A-Z][a-z]+)?)\s+tanggal\s+(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/.exec(t))) {
+    r.pn = m[1].trim(); r.nomor = m[2].trim(); r.tgl = isoTgl(m[3], m[4], m[5]);
+  }
+  if (!r.nomor) return null;
+  r.jenis = /diangkat menjadi\s+\**PENGAMPU/i.test(t) || /PENYUMPAHAN PENGAMPUAN/i.test(t) ? "pengampuan" : "perwalian";
+  if ((m = /yaitu\s+\**([A-Z][A-Za-z .,'’-]+?)\**,\s*(Laki-laki|Perempuan)/.exec(t))) r.wali = m[1].trim();
+  m = t.match(/agama\s+(Islam|Kristen(?: Protestan)?|Protestan|Katolik|Katholik|Hindu|Budha|Buddha|Konghucu)/i);
+  if (m) r.agama = { protestan: "Kristen", "kristen protestan": "Kristen", katholik: "Katolik", budha: "Buddha" }[m[1].toLowerCase()] || m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
+  if ((m = /alamat\s+(.+?),\s+yang berdasarkan Penetapan/.exec(t))) r.alamat = m[1].trim();
+  if ((m = /menjadi\s+\**(?:WALI|PENGAMPU)\**\s+terhadap\s+(.+?)nya[,:]/i.exec(t))) r.hubungan = m[1].trim().toLowerCase();
+  var anak = [], ra = /(?:^|\n)\s*(?:[-•]\s*)?([A-Z][A-Z .'’-]{2,}?),?\s+(?:laki-laki|perempuan),\s*lahir pada tanggal/gm;
+  while ((m = ra.exec(t))) { var nm = m[1].trim().replace(/\s+/g, " "); if (anak.indexOf(nm) < 0) anak.push(nm); }
+  if (anak.length) r.anak = anak.map(function (x) { return x.replace(/\b\w+/g, function (w) { return w.charAt(0) + w.slice(1).toLowerCase(); }); });
+  if ((m = /Pada hari ini,\s*([A-Za-z]+),\s*tanggal\s+([A-Za-z ]+?)\s+bulan\s+([A-Za-z]+)\s+tahun\s+([A-Za-z ]+?)[,\s]+(?:telah|kami)/i.exec(t))) {
+    var d = kataKeAngka(m[2]), y = kataKeAngka(m[4]);
+    if (d && y && d <= 31 && y > 2000) r.tglSumpah = isoTgl(d, m[3], y);
+  }
+  if ((m = /PENYUMPAHAN (?:PERWALIAN|PENGAMPUAN)\s*\**\s*Nomor\s*:\s*(W\.\d[\w.\-]*-\d+)/i.exec(t))) r.ba = m[1];
+  var bahwa = t.split("\n").map(function (x) { return x.trim(); }).filter(function (x) { return /^Bahwa\s/.test(x) && x.length > 30; });
+  if (bahwa.length) r.latar = bahwa.join(" ");
+  var akt = /AKTIVA([\s\S]*?)PASSIVA/i.exec(t), harta = [];
+  if (akt) akt[1].split("\n").forEach(function (x) {
+    var s = x.replace(/\*/g, "").trim();
+    var mm = /^\d+\s*[.)]\s*(.{6,})$/.exec(s);
+    if (mm && !/^(BARANG|UANG|SURAT|PERABOT)/i.test(mm[1])) harta.push(mm[1].trim());
+  });
+  r.harta = harta;
+  return r;
+}
+function unggahBerkas(files) {
+  var hasil = [], sisa = files.length; if (!sisa) return;
+  Array.prototype.forEach.call(files, function (f) {
+    var buka = /\.docx$/i.test(f.name) ? f.arrayBuffer().then(teksDocx) : /\.pdf$/i.test(f.name) ? f.arrayBuffer().then(teksPdf) : Promise.resolve("");
+    buka.catch(function () { return ""; }).then(function (teks) {
+      hasil.push({ nama: f.name, r: teks ? bacaBerkas(teks) : null });
+      if (--sisa) return;
+      var laporan = [];
+      hasil.forEach(function (h) {
+        if (!h.r) { laporan.push("✗ " + h.nama + ": tidak terbaca"); return; }
+        var r = h.r, kunci = r.nomor.replace(/\s/g, "");
+        var p = S.penetapan.filter(function (q) { return q.nomor.replace(/\s/g, "") === kunci; })[0];
+        if (!p) {
+          var kosong = S.penetapan.filter(function (q) { return !q.nomor.trim() && !q.wali.trim(); })[0];
+          p = kosong || penetapanBaru(); if (!kosong) S.penetapan.push(p);
+          p.pn = r.pn; p.nomor = r.nomor; p.tgl = r.tgl;
+        }
+        var isi = [];
+        function pasang(k, v, nama) { if (v && !String(p[k] || "").trim()) { p[k] = v; isi.push(nama); } }
+        if (r.jenis && !p.nomor.trim()) p.jenis = r.jenis; else if (r.jenis) p.jenis = r.jenis;
+        pasang("wali", r.wali && r.wali.replace(/\b\w+/g, function (w) { return w.charAt(0) + w.slice(1).toLowerCase(); }), "nama");
+        pasang("anak", r.anak && (r.anak.length > 1 ? r.anak.slice(0, -1).join(", ") + " dan " + r.anak[r.anak.length - 1] : r.anak[0]), r.jenis === "pengampuan" ? "terampu" : "anak");
+        pasang("hubungan", r.hubungan, "hubungan");
+        pasang("alamat", r.alamat, "alamat");
+        pasang("agama", r.agama, "agama");
+        pasang("ba", r.ba, "nomor BA");
+        pasang("tglSumpah", r.tglSumpah, "tanggal sumpah");
+        pasang("latar", r.latar, "keterangan BA Penghadapan");
+        if (r.harta.length) { pasang("harta", r.harta.join("; "), "harta"); if (isi.indexOf("harta") >= 0) p.hasil = "berhasil_pnbp"; }
+        if (r.tglSumpah && !S.tglKegiatan) S.tglKegiatan = r.tglSumpah;
+        laporan.push("✓ " + ist(p).W + " an. " + (p.wali || "?") + ": " + (isi.length ? isi.join(", ") : "sudah lengkap") + (r.harta.length ? "" : " (BA Harta belum berisi harta)"));
+      });
+      S.infoBerkas = laporan.join("\n");
+      semua();
+    });
   });
 }
 /* Kenali jenis kegiatan dari isi Surat Tugas */
@@ -975,7 +1062,7 @@ function renderForm() {
       "<br><span class=\"hint\">Mengetahui: " + esc(S.kepala || "—") + "</span></div>" + lipat("tim", "Ubah / tambah anggota tim", hTim, false) : '<p class="hint">Terisi otomatis dari Surat Tugas.</p>' + lipat("tim", "Isi manual anggota tim", '<p class="hint">Pilih nama dari daftar pegawai.</p>' + hTim, !!(rst && rst.nama && !rst.terbaca))) + "</div>";
 
   if (peny) {
-    h += '<div class="card"><h2>4. Hasil tiap penetapan</h2><div class="count"><label style="margin:0">Jumlah penetapan</label><input type="number" min="1" max="30" id="nPen" value="' + S.penetapan.length + '"><button class="sm" data-act="addPen">+ Tambah</button></div>';
+    h += '<div class="card"><h2>4. Hasil tiap penetapan</h2>' + kartuBerkas() + '<div class="count"><label style="margin:0">Jumlah penetapan</label><input type="number" min="1" max="30" id="nPen" value="' + S.penetapan.length + '"><button class="sm" data-act="addPen">+ Tambah</button></div>';
     S.penetapan.forEach(function (p, i) {
       var k = "penetapan." + i + ".", hs = hasilOf(p.hasil), t = ist(p), w = t.W.toLowerCase();
       var dataPen = '<div class="row">' + sel("Jenis perkara", k + "jenis", [{ id: "perwalian", label: "Perwalian (wali)" }, { id: "pengampuan", label: "Pengampuan (pengampu)" }], true) + inp("Pengadilan", k + "pn", "text", 'placeholder="Pengadilan Negeri Lubuk Pakam"') + "</div>" +
@@ -1304,6 +1391,7 @@ form.addEventListener("change", function (e) {
   }
   if (el.id === "fotoBanyak") { unggahBanyak(el.files); return; }
   if (el.id === "fileST" && el.files[0]) { unggahST(el.files[0]); return; }
+  if (el.id === "fileBerkas" && el.files.length) { unggahBerkas(el.files); return; }
   if (el.hasAttribute("data-ruj") && el.files[0]) { unggahRuj(el.getAttribute("data-ruj"), el.files[0]); return; }
   if (el.hasAttribute("data-foto") && el.files[0]) {
     var i = +el.getAttribute("data-foto");
