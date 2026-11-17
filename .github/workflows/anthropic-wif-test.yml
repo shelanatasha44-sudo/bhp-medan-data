@@ -1,0 +1,32 @@
+# Uji koneksi ke Claude API lewat Workload Identity Federation (tanpa kunci API).
+# GitHub menerbitkan token OIDC untuk workflow ini; Anthropic menukarnya dengan
+# token akses sesuai aturan federasi. Jalankan manual dari tab Actions, atau
+# otomatis saat skrip/workflow ini berubah.
+name: Uji koneksi Claude (WIF)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/scripts/anthropic_wif_test.py
+      - .github/workflows/anthropic-wif-test.yml
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  uji:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Anthropic SDK
+        run: pip install --upgrade anthropic
+      - name: Fetch GitHub OIDC token
+        run: |
+          token=$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://api.anthropic.com" | jq -r .value)
+          echo "::add-mask::$token"
+          echo "JWT=$token" >> "$GITHUB_ENV"
+      - name: Call Claude
+        run: python .github/scripts/anthropic_wif_test.py
