@@ -33,6 +33,7 @@ button:disabled { opacity: .4; cursor: default; }
 button.pri { background: linear-gradient(180deg, var(--gold-2), var(--gold)); border-color: var(--gold-3); color: var(--navy-2); box-shadow: 0 2px 8px rgba(184,146,63,.35); }
 button.pri:hover { background: linear-gradient(180deg, #e4cc92, #c29d4b); }
 button.ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,.35); }
+.topbar [hidden] { display: none !important; }
 button.ghost:hover { background: rgba(255,255,255,.1); }
 .topbar select { width: auto; background: rgba(255,255,255,.06); color: #fff; border-color: rgba(255,255,255,.35); font-weight: 600; font-size: 13.5px; }
 .topbar select option { color: var(--fg); }
@@ -153,9 +154,9 @@ textarea.tall { min-height: 170px; }
   <div class="brand"><img id="brandLogo" alt="Logo Pengayoman"><div><div class="t1">Kementerian Hukum RI · Kantor Wilayah Sumatera Utara</div><div class="t2">Balai Harta Peninggalan Medan</div><div class="t3">Penyusun Laporan Kegiatan &amp; Surat Tugas</div></div></div>
   <div class="actions">
     <span class="status" id="status"></span>
-    <select id="selDok" aria-label="Dokumen yang ditampilkan"><option value="laporan">Dokumen: Laporan Kegiatan</option><option value="st">Dokumen: Surat Tugas</option></select>
-    <button class="pri" id="btnPrint">Cetak / Simpan PDF</button>
-    <button class="ghost" id="btnWord">Unduh Word</button>
+    <select id="selDok" hidden aria-label="Dokumen yang ditampilkan"><option value="laporan">Dokumen: Laporan Kegiatan</option><option value="st">Dokumen: Surat Tugas</option></select>
+    <button class="pri" id="btnPrint" hidden>Cetak / Simpan PDF</button>
+    <button class="ghost" id="btnWord" hidden>Unduh Word</button>
     <button class="ghost" id="btnNew">Laporan baru</button>
     <button class="ghost" id="btnAdmin" title="Keluar dan kembali ke layar masuk">Keluar</button>
   </div>
