@@ -76,3 +76,10 @@ var KOP = {
   l1: "KEMENTERIAN HUKUM REPUBLIK INDONESIA", l2: "KANTOR WILAYAH SUMATERA UTARA", l3: "BALAI HARTA PENINGGALAN MEDAN",
   alamat: ["Jalan Listrik No. 10 Medan", "Telepon: (061) 451 7830, Faksimile: (061) 451 4328", "Laman: www.bhpmedan.kemenkum.go.id, Pos-el: bhp.medan@kemenkum.go.id"]
 };
+
+/* DIPA per tahun anggaran. Satu tahun memakai DIPA yang sama untuk semua surat dan laporan.
+   Setiap awal tahun, tambahkan baris tahun baru di sini. Aplikasi memilih DIPA sesuai tahun
+   tanggal kegiatan; bila tahunnya belum ada, dipakai DIPA tahun terakhir yang tercatat. */
+var DIPA = {
+  2026: { nomor: "SP DIPA-135.04.2.692042/2026", tanggal: "2025-12-01" }
+};

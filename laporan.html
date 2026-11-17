@@ -143,7 +143,7 @@ function kosong(lama) {
   return {
     jenis: lama.jenis || "penyumpahan", sampul: lama.sampul !== false,
     dok: "laporan", tglKegiatan: "", tglSelesai: "", tglLaporan: "", wilayah: "", kota: "Medan",
-    stNomor: "", stTanggal: "", dipaNomor: lama.dipaNomor || "", dipaTanggal: lama.dipaTanggal || "",
+    stNomor: "", stTanggal: "", 
     tim: lama.tim || [{ nama: "", pangkat: "", nip: "", jabatan: "" }], pj: lama.pj || 0,
     kepala: lama.kepala || (typeof PEGAWAI !== "undefined" ? ((PEGAWAI.filter(function (p) { return /^Kepala BHP/i.test(p.jabatan); })[0] || {}).nama || "") : ""),
     penetapan: [penetapanBaru()],
@@ -496,7 +496,7 @@ var AUTO = {
       t = rd && rd.dasar.length ? rd.dasar.slice() : jenisOf(S.jenis).dasar.slice();
       if (S.objek.trim() && !(rd && rd.dasar.length)) t.push(S.objek.trim() + ";");
     }
-    t.push("Daftar Isian Pelaksanaan Anggaran Balai Harta Peninggalan Medan Nomor: " + ph(S.dipaNomor, "nomor DIPA") + " tanggal " + tgl(S.dipaTanggal, "tanggal DIPA") + ";");
+    t.push("Daftar Isian Pelaksanaan Anggaran Balai Harta Peninggalan Medan Nomor: " + ph(dipa().nomor, "nomor DIPA") + " tanggal " + tgl(dipa().tanggal, "tanggal DIPA") + ";");
     t.push("Surat Tugas Kepala Balai Harta Peninggalan Medan Nomor: " + ph(S.stNomor, "nomor surat tugas") + " tanggal " + tgl(S.stTanggal, "tanggal surat tugas") + ".");
     return t.join("\n");
   },
@@ -571,6 +571,13 @@ function namaKegiatan() {
   var c = campur();
   return "pelaksanaan sumpah terhadap " + (c.perwalian && c.pengampuan ? "Wali/Pengampu dan pencatatan harta" : c.pengampuan ? "Pengampu dan pencatatan harta orang di bawah pengampuan" : "Wali dan pencatatan harta anak di bawah perwalian");
 }
+/* DIPA sesuai tahun tanggal kegiatan (atau tahun ini); bila belum ada, tahun terakhir yang tercatat */
+function dipa() {
+  if (typeof DIPA === "undefined") return {};
+  var th = (S.tglKegiatan || S.stTanggal || new Date().toISOString()).slice(0, 4);
+  if (DIPA[th]) return DIPA[th];
+  var ks = Object.keys(DIPA).sort(); return ks.length ? DIPA[ks[ks.length - 1]] : {};
+}
 function multi() { return !!(S.tglSelesai && S.tglSelesai !== S.tglKegiatan && pecah(S.tglKegiatan)); }
 function waktuTxt(sep) {
   if (!multi()) return hari(S.tglKegiatan) + sep + tgl(S.tglKegiatan, "tanggal kegiatan");
@@ -632,7 +639,7 @@ function renderForm() {
   h += '<div class="card"><h2>2. Waktu dan Surat Tugas</h2><div class="row">' + inp("Tanggal kegiatan (mulai)", "tglKegiatan", "date", "data-re") + inp("Tanggal selesai (kosong = 1 hari)", "tglSelesai", "date", "data-re") + "</div>" +
     '<div class="row">' + inp("Wilayah kegiatan (untuk Surat Tugas)", "wilayah", "text", 'placeholder="Kota Medan"') + inp("Tanggal laporan (kosong = hari terakhir)", "tglLaporan", "date") + "</div>" +
     '<div class="row">' + inp("Nomor Surat Tugas", "stNomor", "text", 'placeholder="W.2.AHU.AHU.1-AH.06.02-…"') + inp("Tanggal Surat Tugas", "stTanggal", "date") + "</div>" +
-    '<div class="row">' + inp("Nomor DIPA", "dipaNomor", "text", 'placeholder="SP DIPA-…"') + inp("Tanggal DIPA", "dipaTanggal", "date") + "</div></div>";
+    '<p class="hint">DIPA otomatis: <b>' + esc(dipa().nomor || "belum tercatat untuk tahun ini") + "</b>" + (dipa().tanggal ? " tanggal " + esc(tgl(dipa().tanggal)) : "") + ". Diubah sekali setahun di templates/naskah.js.</p></div>";
 
   h += '<div class="card"><h2>3. Tim Pelaksana <button class="sm" data-act="addTim">+ Tambah</button></h2><p class="hint">Tersimpan untuk laporan berikutnya.</p>';
   S.tim.forEach(function (_, i) {
@@ -768,7 +775,7 @@ function buildST(word) {
   h += '<table style="width:100%">' +
     row("Menimbang", daftarHtml(["Bahwa demi terlaksananya tugas pokok dan fungsi Balai Harta Peninggalan" + (peny ? " sebagai " + peranBhp : "") + ", Balai Harta Peninggalan Medan akan " + keg + ";",
       "Bahwa untuk memerintahkan pegawai dimaksud perlu mengeluarkan Surat Tugas Kepala Balai Harta Peninggalan Medan."], abc)) +
-    row("Dasar", daftarHtml(daftar.map(function (d) { return d + ";"; }).concat(["Daftar Isian Pelaksanaan Anggaran Balai Harta Peninggalan Medan Nomor: " + ph(S.dipaNomor, "nomor DIPA") + " tanggal " + tgl(S.dipaTanggal, "tanggal DIPA") + "."]), function (i) { return (i + 1) + "."; })) +
+    row("Dasar", daftarHtml(daftar.map(function (d) { return d + ";"; }).concat(["Daftar Isian Pelaksanaan Anggaran Balai Harta Peninggalan Medan Nomor: " + ph(dipa().nomor, "nomor DIPA") + " tanggal " + tgl(dipa().tanggal, "tanggal DIPA") + "."]), function (i) { return (i + 1) + "."; })) +
     '<tr><td colspan="3" style="text-align:center;padding:6pt 0 10pt"><b>MENUGASKAN:</b></td></tr>' +
     row("Kepada", "Daftar Nama Pejabat/Pegawai (terlampir)") +
     row("Untuk", daftarHtml([keg.charAt(0).toUpperCase() + keg.slice(1) + " pada hari " + waktuTxt(", tanggal ") + " di " + ph(S.wilayah, "wilayah kegiatan") + ";",
