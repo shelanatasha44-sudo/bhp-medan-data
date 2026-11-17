@@ -3,7 +3,17 @@
   "headers": [
     {
       "source": "/templates/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
     }
-  ]
+  ],
+  "functions": {
+    "api/claude.js": {
+      "maxDuration": 300
+    }
+  }
 }

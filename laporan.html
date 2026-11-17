@@ -118,6 +118,7 @@ textarea.tall { min-height: 170px; }
     <button class="pri" id="btnPrint">Cetak / Simpan PDF</button>
     <button class="ghost" id="btnWord">Unduh Word</button>
     <button class="ghost" id="btnNew">Laporan baru</button>
+    <button class="ghost" id="btnAdmin" title="Khusus admin">Admin</button>
   </div>
 </div></div>
 
@@ -227,32 +228,43 @@ function unggahBanyak(files) {
    LAMAN AI — memanggil Claude API langsung dari browser.
    Kunci API hanya disimpan di perangkat ini (localStorage), tidak pernah masuk ke repo.
    ===================================================================== */
-var AI_MODEL = "claude-opus-5-5", KEY_AI = "bhp-claude-key", ai = { sibuk: "", pesan: "", galat: false };
-function kunciAI() { try { return localStorage.getItem(KEY_AI) || ""; } catch (e) { return ""; } }
-var AI_SISTEM = "Anda membantu pegawai Balai Harta Peninggalan (BHP) Medan menyusun laporan kegiatan resmi. Gunakan bahasa Indonesia baku bergaya laporan dinas: lugas, kalimat lengkap, tanpa kata berlebihan. " +
-  "Jangan mengarang fakta. Gunakan hanya data, catatan pegawai, dan apa yang benar-benar terlihat atau tertulis pada foto. Bila sesuatu tidak terbaca atau tidak diketahui, biarkan kosong. " +
-  "Balas HANYA dengan satu objek JSON sesuai bentuk yang diminta, tanpa teks pembuka, penutup, atau pagar kode.";
-function panggilClaude(content) {
-  return fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-api-key": kunciAI(), "anthropic-version": "2026-10-21",
-      "anthropic-beta": "server-side-fallback-2026-07-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify({ model: AI_MODEL, max_tokens: 16000, fallbacks: "default", system: AI_SISTEM, messages: [{ role: "user", content: content }] })
-  }).then(function (r) {
-    return r.json().catch(function () { return {}; }).then(function (j) {
-      if (!r.ok) {
-        var m = (j.error && j.error.message) || ("HTTP " + r.status);
-        throw new Error(r.status === 401 ? "Kunci API ditolak. Periksa kembali kunci yang dimasukkan." : r.status === 429 ? "Batas pemakaian tercapai. Coba lagi sebentar lagi." : r.status >= 500 ? "Layanan Claude sedang bermasalah. Coba lagi nanti." : "Permintaan ditolak: " + m);
-      }
-      if (j.stop_reason === "refusal") throw new Error("Claude menolak permintaan ini.");
-      if (j.stop_reason === "max_tokens") throw new Error("Jawaban terpotong karena terlalu panjang. Kurangi jumlah foto atau data, lalu coba lagi.");
-      var t = (j.content || []).filter(function (b) { return b.type === "text"; }).map(function (b) { return b.text; }).join("");
-      var a = t.indexOf("{"), z = t.lastIndexOf("}");
-      if (a < 0 || z <= a) throw new Error("Jawaban Claude tidak dapat dibaca.");
-      return JSON.parse(t.slice(a, z + 1));
+var ai = { sibuk: "", pesan: "", galat: false };
+try { localStorage.removeItem("bhp-claude-key"); } catch (e) {}
+/* Akses admin: kata sandi diperiksa di server (/api/claude) dan hanya disimpan selama tab browser terbuka. */
+var KEY_ADMIN = "bhp-admin";
+function sandiAdmin() { try { return sessionStorage.getItem(KEY_ADMIN) || ""; } catch (e) { return ""; } }
+function isAdmin() { return !!sandiAdmin(); }
+function kirimServer(isi) {
+  if (location.protocol === "file:") return Promise.reject(new Error("Bantuan Claude hanya tersedia di versi online (bhp-medan-laporan.vercel.app)."));
+  return fetch("/api/claude", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(isi) })
+    .then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (r.status === 404) throw new Error("Layanan AI tidak ditemukan di alamat ini. Gunakan versi online di Vercel.");
+        if (r.status === 401) { try { sessionStorage.removeItem(KEY_ADMIN); } catch (e) {} throw new Error(j.galat || "Kata sandi admin salah."); }
+        if (!r.ok) throw new Error(j.galat || ("Galat server " + r.status + "."));
+        return j;
+      });
     });
+}
+function panggilClaude(content) {
+  return kirimServer({ password: sandiAdmin(), content: content }).then(function (j) {
+    if (j.stop_reason === "refusal") throw new Error("Claude menolak permintaan ini.");
+    if (j.stop_reason === "max_tokens") throw new Error("Jawaban terpotong karena terlalu panjang. Kurangi jumlah foto atau data, lalu coba lagi.");
+    var t = j.text || "", a = t.indexOf("{"), z = t.lastIndexOf("}");
+    if (a < 0 || z <= a) throw new Error("Jawaban Claude tidak dapat dibaca.");
+    return JSON.parse(t.slice(a, z + 1));
   });
 }
+function masukAdmin() {
+  var pw = prompt("Kata sandi admin:"); if (!pw) return;
+  kirimServer({ password: pw, cek: true }).then(function (j) {
+    try { sessionStorage.setItem(KEY_ADMIN, pw); } catch (e) {}
+    ai.pesan = j.siap ? "Mode admin aktif. Tab AI sudah terbuka." : "Mode admin aktif, tetapi kunci API Claude belum dipasang di Vercel."; ai.galat = !j.siap;
+    S.step = 4; simpan(); aturAdmin(); renderForm();
+  }).catch(function (e) { alert(e.message); });
+}
+function keluarAdmin() { try { sessionStorage.removeItem(KEY_ADMIN); } catch (e) {} ai.pesan = ""; if (S.step === 4) S.step = 5; simpan(); aturAdmin(); renderForm(); }
+function aturAdmin() { var b = document.getElementById("btnAdmin"); if (b) b.textContent = isAdmin() ? "Keluar admin" : "Admin"; }
 function ringkasData() {
   var peny = S.jenis === "penyumpahan";
   return {
@@ -264,11 +276,11 @@ function ringkasData() {
   };
 }
 function jalankanAI(nama, janji, terap) {
-  if (!kunciAI()) { ai.pesan = "Masukkan kunci API Claude lebih dahulu."; ai.galat = true; renderForm(); return; }
+  if (!isAdmin()) { ai.pesan = "Fitur ini khusus admin."; ai.galat = true; renderForm(); return; }
   ai.sibuk = nama; ai.pesan = ""; renderForm();
   janji().then(function (j) { ai.pesan = terap(j); ai.galat = false; })
-    .catch(function (e) { ai.pesan = e && e.message === "Failed to fetch" ? "Tidak dapat terhubung ke Claude. Periksa koneksi internet." : (e.message || String(e)); ai.galat = true; })
-    .then(function () { ai.sibuk = ""; semua(); });
+    .catch(function (e) { ai.pesan = e && e.message === "Failed to fetch" ? "Tidak dapat terhubung ke server. Periksa koneksi internet." : (e.message || String(e)); ai.galat = true; })
+    .then(function () { ai.sibuk = ""; aturAdmin(); semua(); });
 }
 function aiFoto() {
   var idx = []; S.krono.forEach(function (k, i) { if (k.foto) idx.push(i); });
@@ -687,13 +699,9 @@ function renderForm() {
   });
   h += "</div>";
 
-  var adaKunci = !!kunciAI(), tb = function (act, nama, label) { return '<button class="pri" data-act="' + act + '"' + (ai.sibuk ? " disabled" : "") + ">" + (ai.sibuk === nama ? "Claude sedang bekerja…" : label) + "</button>"; };
-  h += '<div class="card"><h2>AI. Bantuan Claude</h2>' +
-    '<p class="hint">Opsional. Claude membaca foto dan data laporan ini lalu mengisi bagian yang masih kosong. Data dan foto dikirim ke layanan Claude (Anthropic) hanya saat Anda menekan tombol.</p>' +
-    '<div class="item' + (adaKunci ? " ok" : " warn") + '"><h3>Kunci API Claude <span class="tag' + (adaKunci ? "" : " man") + '">' + (adaKunci ? "tersimpan di perangkat ini" : "belum diisi") + "</span></h3>" +
-    '<div class="row" style="grid-template-columns:1fr auto auto;align-items:end"><div><label>Tempel kunci (sk-ant-…)</label><input type="password" id="kunciAI" autocomplete="off" placeholder="' + (adaKunci ? "•••••••• (sudah tersimpan)" : "sk-ant-…") + '"></div>' +
-    '<button data-act="simpanKunci">Simpan</button><button class="del" data-act="hapusKunci"' + (adaKunci ? "" : " disabled") + ">Hapus</button></div>" +
-    '<p class="hint">Kunci hanya disimpan di browser perangkat ini. Jangan menuliskannya di berkas repo atau membagikannya.</p></div>' +
+  var tb = function (act, nama, label) { return '<button class="pri" data-act="' + act + '"' + (ai.sibuk ? " disabled" : "") + ">" + (ai.sibuk === nama ? "Claude sedang bekerja…" : label) + "</button>"; };
+  h += '<div class="card"><h2>AI. Bantuan Claude (khusus admin)</h2>' +
+    '<p class="hint">Claude membaca foto dan data laporan ini lalu mengisi bagian yang masih kosong. Data dan foto dikirim ke layanan Claude (Anthropic) melalui server aplikasi hanya saat tombol ditekan. Kunci API tersimpan di server, tidak di perangkat ini.</p>' +
     area("Catatan lapangan untuk Claude (opsional)", "catatanAI", "Tulis bebas: siapa yang ditemui, apa yang terjadi, kendala, hal yang perlu ditonjolkan…") +
     '<div class="item"><h3>1. Baca foto, susun kronologi</h3><p class="hint">Claude membaca cap waktu dan alamat pada foto Timemark, mengurutkan, lalu menulis lokasi, uraian, dan keterangan foto.</p><div style="margin-top:8px">' + tb("aiFoto", "foto", "Baca " + S.krono.filter(function (k) { return k.foto; }).length + " foto") + "</div></div>" +
     '<div class="item"><h3>2. Tulis Hasil, Simpulan, dan Saran</h3><p class="hint">Disusun dari kronologi dan data penetapan. Jalankan setelah kronologi terisi.</p><div style="margin-top:8px">' + tb("aiNaskah", "naskah", "Tulis dengan Claude") + "</div></div>" +
@@ -704,18 +712,22 @@ function renderForm() {
     ovArea("A.1 Umum", "umum", "Satu paragraf per baris.", true) + ovArea("A.2 Maksud dan Tujuan", "maksud", "Satu butir per baris.") + ovArea("A.4 Dasar", "dasar", "Satu butir per baris.") +
     ovArea("C. Hasil yang Dicapai", "hasil", "Satu butir per baris.") + ovArea("D.1 Simpulan", "simpulan") + ovArea("D.2 Saran", "saran") + "</div>";
 
+  if (!isAdmin() && +S.step === 4) S.step = 5;
   var st = Math.max(0, Math.min(5, +S.step || 0)), peta = S.jenis === "kepailitan" ? [0, 0, 1, 2, 2, 3, 4, 5] : [0, 0, 1, 2, 3, 4, 5];
   var nama = ["Kegiatan", "Tim", peny ? "Penetapan" : "Objek", "Kronologi", "AI", "Naskah"];
   var lead = ["Pilih jenis kegiatan, lalu isi tanggal dan surat tugas.", "Isi tim sekali saja — tersimpan untuk laporan berikutnya.",
     peny ? "Satu kartu per penetapan. Pilih hasilnya; kalimat laporan tersusun sendiri." : "Tulis judul dan dasar kegiatan.",
     "Catat jam, lokasi, dan foto tiap tahap kegiatan.", "Biarkan Claude membaca foto dan menulis bagian yang kosong.", "Periksa naskah. Tulisan merah di pratinjau berarti masih kosong."];
-  var nav = '<div class="steps">' + nama.map(function (n, i) { return '<button class="step' + (i === st ? " on" : i < st ? " done" : "") + '" data-act="step" data-i="' + i + '"' + (i === st ? ' aria-current="step"' : "") + '><span class="n">' + (i + 1) + '</span><span class="l">' + n + "</span></button>"; }).join("") + "</div>" +
+  var vis = [0, 1, 2, 3, 4, 5].filter(function (i) { return i !== 4 || isAdmin(); });
+  var prev = vis[vis.indexOf(st) - 1], next = vis[vis.indexOf(st) + 1];
+  var nav = '<div class="steps">' + vis.map(function (i) { var n = nama[i]; return '<button class="step' + (i === st ? " on" : i < st ? " done" : "") + '" data-act="step" data-i="' + i + '"' + (i === st ? ' aria-current="step"' : "") + '><span class="n">' + (vis.indexOf(i) + 1) + '</span><span class="l">' + n + "</span></button>"; }).join("") + "</div>" +
     '<p class="lead">' + lead[st] + "</p>";
-  var foot = '<div class="foot"><button data-act="step" data-i="' + (st - 1) + '"' + (st ? "" : " disabled") + ">← Sebelumnya</button>" +
-    (st < 5 ? '<button class="pri" data-act="step" data-i="' + (st + 1) + '">Lanjut →</button>' : '<button class="pri" data-act="cetak">Cetak / Simpan PDF</button>') + "</div>";
+  var foot = '<div class="foot"><button data-act="step" data-i="' + prev + '"' + (prev === undefined ? " disabled" : "") + ">← Sebelumnya</button>" +
+    (next !== undefined ? '<button class="pri" data-act="step" data-i="' + next + '">Lanjut →</button>' : '<button class="pri" data-act="cetak">Cetak / Simpan PDF</button>') + "</div>";
   var el = document.getElementById("form");
   el.innerHTML = nav + h.replace(/<h2>(\d+|AI)\. /g, "<h2>") + foot;
   Array.prototype.forEach.call(el.querySelectorAll(".card"), function (c, i) { if (peta[i] !== st) c.style.display = "none"; });
+  if (!isAdmin()) Array.prototype.forEach.call(el.querySelectorAll(".card"), function (c) { if (/Bantuan Claude/.test(c.querySelector("h2").textContent)) c.remove(); });
 }
 
 /* =====================================================================
@@ -903,8 +915,6 @@ form.addEventListener("click", function (e) {
   var btn = e.target.closest("[data-act]"); if (!btn) return;
   var a = btn.getAttribute("data-act"), i = +btn.getAttribute("data-i"), t;
   if (a === "cetak") { if (bolehCetak()) window.print(); return; }
-  if (a === "simpanKunci") { var kv = document.getElementById("kunciAI").value.trim(); if (kv) { try { localStorage.setItem(KEY_AI, kv); ai.pesan = "Kunci tersimpan di perangkat ini."; ai.galat = false; } catch (er) { ai.pesan = "Kunci tidak dapat disimpan di browser ini."; ai.galat = true; } } renderForm(); return; }
-  if (a === "hapusKunci") { try { localStorage.removeItem(KEY_AI); } catch (er) {} ai.pesan = "Kunci dihapus dari perangkat ini."; ai.galat = false; renderForm(); return; }
   if (a === "aiFoto") { aiFoto(); return; }
   if (a === "aiNaskah") { aiNaskah(); return; }
   if (a === "aiPosisi") { aiPosisi(); return; }
@@ -926,6 +936,8 @@ form.addEventListener("click", function (e) {
   semua();
 });
 document.getElementById("brandLogo").src = LOGO;
+document.getElementById("btnAdmin").onclick = function () { if (isAdmin()) keluarAdmin(); else masukAdmin(); };
+aturAdmin();
 var selDok = document.getElementById("selDok"); selDok.value = S.dok || "laporan";
 selDok.onchange = function () { S.dok = selDok.value; simpan(); renderPaper(); };
 document.getElementById("btnPrint").onclick = function () { if (bolehCetak()) window.print(); };
