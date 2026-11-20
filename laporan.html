@@ -112,6 +112,40 @@ textarea.tall { min-height: 170px; }
 .ringkas { margin: 4px 0 0; padding: 10px 12px; background: var(--faint); border: 1px solid var(--line); border-radius: 10px; font-size: 14px; line-height: 1.6; }
 .ringkas b { color: var(--navy); }
 
+/* ---- arsip laporan ---- */
+.arsip { position: fixed; inset: 0; z-index: 45; background: rgba(10,18,48,.55); display: flex; justify-content: center; align-items: flex-start; padding: 28px 16px; overflow: auto; }
+.arsip[hidden] { display: none; }
+.arsip .kotak { width: 100%; max-width: 860px; background: #fff; border-radius: 16px; box-shadow: 0 0 0 1px var(--gold-2), 0 20px 60px rgba(0,0,0,.4); overflow: hidden; }
+.arsip .ah { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; background: linear-gradient(180deg, var(--navy), var(--navy-2)); color: #fff; border-bottom: 1px solid var(--gold); }
+.arsip .ah .t1 { font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--gold-2); font-weight: 600; }
+.arsip .ah h2 { margin: 2px 0 0; font: 600 22px/1.2 var(--serif); }
+.arsip .ah button { background: transparent; color: #fff; border-color: rgba(255,255,255,.4); }
+.arsip .isi { padding: 14px 20px 20px; }
+.arsip .tab { display: flex; gap: 6px; margin-bottom: 12px; border-bottom: 1px solid var(--line); }
+.arsip .tab button { border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: none; padding: 8px 12px; font-weight: 600; color: var(--muted); }
+.arsip .tab button.on { color: var(--navy); border-bottom-color: var(--gold); }
+.arsip .saring { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.arsip .saring input { flex: 1; min-width: 180px; }
+.arsip .saring .chip { padding: 7px 12px; border-radius: 99px; font-size: 13px; }
+.arsip .saring .chip.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.arsip .info { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--faint); border: 1px solid var(--line); font-size: 13.5px; line-height: 1.55; }
+.arsip .info.warn { background: #fff8e6; border-color: var(--gold-2); }
+.arsip .daftar { display: grid; gap: 8px; margin-top: 12px; }
+.arsip .lap { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px 12px; align-items: center; padding: 11px 13px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+.arsip .lap.buka { border-color: var(--gold); background: #fffcf3; }
+.arsip .lap b { display: block; color: var(--navy); font-size: 15px; line-height: 1.35; }
+.arsip .lap small { display: block; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+.arsip .lap .st { display: inline-block; margin-right: 6px; padding: 1px 8px; border-radius: 99px; font-size: 11.5px; font-weight: 700; vertical-align: 1px; }
+.arsip .lap .st.draft { background: #fdf0d5; color: #8a6414; }
+.arsip .lap .st.selesai { background: #e2f3e8; color: #23683f; }
+.arsip .lap .b { display: flex; gap: 6px; }
+.arsip .kosong { text-align: center; color: var(--muted); padding: 24px 8px; font-size: 14px; }
+.arsip .afoot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+@media (max-width: 1000px) {
+  .arsip { padding: 0; } .arsip .kotak { border-radius: 0; min-height: 100%; }
+  .arsip .isi { padding: 12px 12px 90px; } .arsip .lap { grid-template-columns: 1fr; } .arsip .lap .b button { flex: 1; }
+}
+
 /* ---- layar masuk ---- */
 .masuk { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; overflow: auto;
   background: radial-gradient(900px 500px at 20% 0%, #23326b 0%, transparent 60%), linear-gradient(180deg, var(--navy), var(--navy-2)); }
@@ -187,6 +221,16 @@ textarea.tall { min-height: 170px; }
 </style>
 </head>
 <body>
+<div class="arsip" id="arsip" hidden><div class="kotak" role="dialog" aria-modal="true" aria-labelledby="arsipJudul">
+  <div class="ah"><div><div class="t1">Arsip</div><h2 id="arsipJudul">Laporan Tersimpan</h2></div><button class="sm" id="arsipTutup">Tutup ✕</button></div>
+  <div class="isi">
+    <div class="tab" id="arsipTab"></div>
+    <div class="saring"><input type="search" id="arsipCari" placeholder="Cari nama wali, jenis kegiatan, atau pegawai"><span id="arsipFilter"></span></div>
+    <div id="arsipInfo"></div>
+    <div class="daftar" id="arsipDaftar"></div>
+    <div class="afoot"><span class="hint" id="arsipSync"></span><button class="pri" id="arsipBaru">+ Laporan baru</button></div>
+  </div>
+</div></div>
 <div class="masuk" id="masuk" hidden>
   <div class="kotak">
     <img id="masukLogo" alt="Logo Pengayoman">
@@ -210,6 +254,7 @@ textarea.tall { min-height: 170px; }
     <select id="selDok" hidden aria-label="Dokumen yang ditampilkan"><option value="laporan">Dokumen: Laporan Kegiatan</option><option value="st">Dokumen: Surat Tugas</option></select>
     <button class="pri" id="btnPrint" hidden>Cetak / Simpan PDF</button>
     <button class="ghost" id="btnWord" hidden>Unduh Word</button>
+    <button class="ghost" id="btnArsip" title="Laporan yang sudah dibuat dan draf">📁 Arsip</button>
     <button class="ghost" id="btnNew">Laporan baru</button>
     <button class="ghost" id="btnAdmin" title="Keluar dan kembali ke layar masuk">Keluar</button>
   </div>
@@ -248,8 +293,15 @@ function kosong(lama) {
     judulLain: "", objek: "", catatanAI: "", cerita: "", tugas: "", infoBerkas: "",
     ruj: {},
     krono: [{ jam: "", jam2: "", lokasi: "", uraian: "", foto: "", fw: 0, fh: 0, ket: "", tgl: "", grup: "" }],
-    ov: {}
+    ov: {},
+    id: idAcak(16), kunciArsip: idAcak(32), status: "draft", dibuat: new Date().toISOString()
   };
+}
+function idAcak(n) {
+  var h = "abcdefghijkmnpqrstuvwxyz23456789", a = new Uint8Array(n), s = "", i;
+  if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(a); else for (i = 0; i < n; i++) a[i] = Math.random() * 256;
+  for (i = 0; i < n; i++) s += h[a[i] % h.length];
+  return s;
 }
 var S = kosong();
 try { var sv = JSON.parse(localStorage.getItem(KEY)); if (sv && sv.tim && sv.penetapan) S = Object.assign(kosong(), sv); } catch (e) {}
@@ -807,6 +859,196 @@ function unggahRuj(slot, file) {
 function simpan() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); }
   catch (e) { try { var c = JSON.parse(JSON.stringify(S)); c.krono.forEach(function (k) { k.foto = ""; }); localStorage.setItem(KEY, JSON.stringify(c)); } catch (e2) {} }
+  jadwalArsip();
+}
+
+/* ---------- Arsip laporan: semua laporan (draf dan selesai) tersimpan otomatis ----------
+   - di perangkat ini (IndexedDB, termasuk foto), dan
+   - di arsip pusat (/api/laporan, Vercel Blob privat) agar admin dapat melihat laporan semua pegawai. */
+function adaIsi(s) {
+  return !!(s.stNomor || s.tugas || s.objek || s.cerita ||
+    (s.penetapan || []).some(function (p) { return (p.wali || "").trim() || (p.nomor || "").trim(); }) ||
+    (s.krono || []).some(function (k) { return (k.uraian || "").trim() || k.foto; }));
+}
+function metaLaporan(s) {
+  var jn = jenisOf(s.jenis).label, w = (s.penetapan || []).map(function (p) { return (p.wali || "").trim(); }).filter(Boolean);
+  var judul = s.jenis === "penyumpahan"
+    ? "Penyumpahan " + (w.length ? w.slice(0, 2).join(", ") + (w.length > 2 ? " dkk." : "") : "(nama wali belum diisi)")
+    : jn + (String(s.objek || "").trim() ? ": " + String(s.objek).trim().split("\n")[0] : "");
+  var pj = (s.tim || [])[+s.pj || 0] || {}, kr = (s.krono || []).filter(function (k) { return k.foto; }).length;
+  var ringkas = [s.jenis === "penyumpahan" ? (s.penetapan || []).length + " penetapan" : "", s.stNomor ? "ST " + s.stNomor : "", kr ? kr + " foto" : ""].filter(Boolean).join(" · ");
+  return { judul: judul.slice(0, 200), jenis: jn, status: s.status === "selesai" ? "selesai" : "draft", pembuat: pj.nama || "", tglKegiatan: s.tglKegiatan || "", ringkas: ringkas };
+}
+var DB_ARSIP = null;
+function dbArsip() {
+  if (!DB_ARSIP) {
+    DB_ARSIP = new Promise(function (ok, gagal) {
+      if (!window.indexedDB) return gagal(new Error("Penyimpanan perangkat tidak tersedia."));
+      var r = indexedDB.open("bhp-arsip-laporan", 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore("laporan", { keyPath: "id" }); };
+      r.onsuccess = function () { ok(r.result); };
+      r.onerror = function () { gagal(r.error); };
+    });
+    DB_ARSIP.catch(function () { DB_ARSIP = null; });
+  }
+  return DB_ARSIP;
+}
+function txArsip(mode, kerja) {
+  return dbArsip().then(function (db) {
+    return new Promise(function (ok, gagal) {
+      var t = db.transaction("laporan", mode), q = kerja(t.objectStore("laporan")), hasil;
+      if (q) q.onsuccess = function () { hasil = q.result; };
+      t.oncomplete = function () { ok(hasil); };
+      t.onerror = t.onabort = function () { gagal(t.error); };
+    });
+  });
+}
+var arsipLokal = {
+  simpan: function (s) {
+    var data = JSON.parse(JSON.stringify(s)), meta = metaLaporan(s);
+    meta.id = s.id; meta.dibuat = s.dibuat; meta.diubah = new Date().toISOString();
+    return txArsip("readwrite", function (st) { return st.put({ id: s.id, meta: meta, data: data }); });
+  },
+  semua: function () { return txArsip("readonly", function (st) { return st.getAll(); }); },
+  ambil: function (id) { return txArsip("readonly", function (st) { return st.get(id); }); },
+  hapus: function (id) { return txArsip("readwrite", function (st) { return st.delete(id); }); }
+};
+var ARSIP = { tLokal: 0, tPusat: 0, jalan: false, lagi: false, mati: false, terakhir: "", galat: "" };
+function jadwalArsip(segera) {
+  if (!ARSIP || !S.id || !adaIsi(S)) return;
+  clearTimeout(ARSIP.tLokal);
+  ARSIP.tLokal = setTimeout(function () { arsipLokal.simpan(S).catch(function () {}); }, segera ? 0 : 600);
+  if (ARSIP.mati || location.protocol === "file:") return;
+  clearTimeout(ARSIP.tPusat);
+  ARSIP.tPusat = setTimeout(kirimArsip, segera ? 0 : 5000);
+}
+function apiArsip(isi) {
+  return fetch("/api/laporan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(isi) })
+    .then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (r.status === 404 && !j.galat) throw Object.assign(new Error("Arsip pusat tidak tersedia di alamat ini."), { belumAktif: true });
+        if (!r.ok) throw Object.assign(new Error(j.galat || ("Galat server " + r.status + ".")), { status: r.status, belumAktif: !!j.belumAktif });
+        return j;
+      });
+    });
+}
+function kirimArsip() {
+  if (ARSIP.mati || !adaIsi(S)) return Promise.resolve();
+  if (ARSIP.jalan) { ARSIP.lagi = true; return ARSIP.jalan; }
+  var s = S;
+  ARSIP.jalan = apiArsip({ aksi: "simpan", id: s.id, kunci: s.kunciArsip, meta: metaLaporan(s), data: s, password: sandiAdmin() || undefined })
+    .then(function (j) { ARSIP.terakhir = j.diubah || new Date().toISOString(); ARSIP.galat = ""; })
+    .catch(function (e) { if (e.belumAktif) ARSIP.mati = true; else ARSIP.galat = e.message; })
+    .then(function () {
+      ARSIP.jalan = false; tulisSync();
+      if (ARSIP.lagi) { ARSIP.lagi = false; jadwalArsip(); }
+    });
+  return ARSIP.jalan;
+}
+/* Laporan ditandai "selesai" saat dicetak atau diunduh. */
+function tandaiSelesai() { if (S.status !== "selesai") S.status = "selesai"; simpan(); jadwalArsip(true); }
+
+var ARSIP_UI = { tab: "", saring: "semua", pusat: null, lokal: null, pesan: "" };
+function waktuId(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }); }
+function tglId(iso) { var d = pecah(iso); return d ? d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : ""; }
+function tulisSync() {
+  var el = document.getElementById("arsipSync"); if (!el) return;
+  el.textContent = location.protocol === "file:" ? "Tersimpan di perangkat ini." :
+    ARSIP.mati ? "Tersimpan di perangkat ini." :
+    ARSIP.galat ? "Belum terkirim ke arsip pusat: " + ARSIP.galat :
+    ARSIP.terakhir ? "Laporan ini tersimpan otomatis, terakhir " + waktuId(ARSIP.terakhir) + "." : "Laporan tersimpan otomatis setiap ada perubahan.";
+}
+function bukaArsip() {
+  ARSIP_UI.tab = isAdmin() && location.protocol !== "file:" ? "pusat" : "lokal";
+  ARSIP_UI.pusat = ARSIP_UI.lokal = null; ARSIP_UI.pesan = "";
+  document.getElementById("arsip").hidden = false;
+  document.body.style.overflow = "hidden";
+  if (adaIsi(S)) { arsipLokal.simpan(S).catch(function () {}).then(muatArsip); kirimArsip(); } else muatArsip();
+  gambarArsip();
+}
+function tutupArsip() { document.getElementById("arsip").hidden = true; document.body.style.overflow = ""; }
+function muatArsip() {
+  var tab = ARSIP_UI.tab;
+  if (tab === "pusat") {
+    ARSIP_UI.pusat = null; gambarArsip();
+    apiArsip({ aksi: "daftar", password: sandiAdmin() })
+      .then(function (j) { ARSIP_UI.pusat = j.laporan || []; ARSIP_UI.pesan = ""; })
+      .catch(function (e) { ARSIP_UI.pusat = []; ARSIP_UI.pesan = e.belumAktif ? "belum" : e.message; if (e.status === 401) { aturAdmin(); } })
+      .then(gambarArsip);
+  } else {
+    ARSIP_UI.lokal = null; gambarArsip();
+    arsipLokal.semua()
+      .then(function (x) { ARSIP_UI.lokal = (x || []).map(function (r) { return r.meta; }).sort(function (a, b) { return String(b.diubah).localeCompare(String(a.diubah)); }); })
+      .catch(function () { ARSIP_UI.lokal = []; ARSIP_UI.pesan = "Penyimpanan di perangkat ini tidak tersedia (mode penyamaran?)."; })
+      .then(gambarArsip);
+  }
+}
+function gambarArsip() {
+  var adm = isAdmin() && location.protocol !== "file:", tab = ARSIP_UI.tab;
+  document.getElementById("arsipTab").innerHTML = adm
+    ? '<button data-tab="pusat" class="' + (tab === "pusat" ? "on" : "") + '">Semua pegawai</button><button data-tab="lokal" class="' + (tab === "lokal" ? "on" : "") + '">Di perangkat ini</button>'
+    : '<button class="on" disabled>Laporan di perangkat ini</button>';
+  document.getElementById("arsipFilter").innerHTML = [["semua", "Semua"], ["draft", "Draf"], ["selesai", "Selesai"]].map(function (f) {
+    return '<button class="chip sm' + (ARSIP_UI.saring === f[0] ? " on" : "") + '" data-saring="' + f[0] + '">' + f[1] + "</button>";
+  }).join(" ");
+  var info = "";
+  if (tab === "pusat" && ARSIP_UI.pesan === "belum") info = '<div class="info warn"><b>Arsip pusat belum aktif.</b> Laporan pegawai belum terkumpul di sini; untuk sementara setiap laporan tersimpan di perangkat masing-masing. ' +
+    "Aktifkan sekali saja di Vercel: buka proyek → <b>Storage</b> → <b>Create Database</b> → <b>Blob</b> → pilih <b>Private</b> → <b>Connect</b> ke proyek ini, lalu tunggu satu menit. Sesudah itu semua laporan otomatis terkumpul.</div>";
+  else if (ARSIP_UI.pesan) info = '<div class="info warn">' + esc(ARSIP_UI.pesan) + "</div>";
+  else if (tab === "pusat") info = '<div class="info">Laporan dari semua pegawai, tersimpan otomatis saat diisi. Buka untuk melihat, memeriksa, atau melanjutkan.</div>';
+  else if (!adm) info = '<div class="info">Laporan yang pernah Anda isi di perangkat ini. Setiap perubahan tersimpan otomatis.</div>';
+  document.getElementById("arsipInfo").innerHTML = info;
+  var data = tab === "pusat" ? ARSIP_UI.pusat : ARSIP_UI.lokal, el = document.getElementById("arsipDaftar");
+  if (data === null) { el.innerHTML = '<div class="kosong">Memuat…</div>'; tulisSync(); return; }
+  var kata = document.getElementById("arsipCari").value.trim().toLowerCase();
+  var tampil = data.filter(function (m) {
+    return (ARSIP_UI.saring === "semua" || m.status === ARSIP_UI.saring) &&
+      (!kata || [m.judul, m.jenis, m.pembuat, m.ringkas].join(" ").toLowerCase().indexOf(kata) >= 0);
+  });
+  var jml = { draft: 0, selesai: 0 }; data.forEach(function (m) { jml[m.status === "selesai" ? "selesai" : "draft"]++; });
+  el.innerHTML = tampil.length ? tampil.map(function (m) {
+    var ini = m.id === S.id, st = m.status === "selesai" ? "selesai" : "draft";
+    return '<div class="lap' + (ini ? " buka" : "") + '"><div><b>' + esc(m.judul) + "</b>" +
+      "<small>" + '<span class="st ' + st + '">' + (st === "selesai" ? "Selesai" : "Draf") + "</span>" + esc([m.jenis, tglId(m.tglKegiatan), m.pembuat].filter(Boolean).join(" · ")) + "</small>" +
+      "<small>" + esc([m.ringkas, "diubah " + waktuId(m.diubah)].filter(Boolean).join(" · ")) + (ini ? " · <b style=\"display:inline;font-size:12.5px;color:var(--gold-3)\">sedang dibuka</b>" : "") + "</small></div>" +
+      '<div class="b">' + (ini ? "" : '<button class="sm pri" data-ar="buka" data-id="' + esc(m.id) + '">Buka</button>') +
+      '<button class="sm del" data-ar="hapus" data-id="' + esc(m.id) + '">Hapus</button></div></div>';
+  }).join("") : '<div class="kosong">' + (data.length ? "Tidak ada laporan yang cocok." : tab === "pusat" && ARSIP_UI.pesan ? "" : "Belum ada laporan tersimpan.") + "</div>";
+  if (data.length) document.getElementById("arsipFilter").innerHTML += ' <span class="hint" style="margin:0">' + data.length + " laporan · " + jml.draft + " draf · " + jml.selesai + " selesai</span>";
+  tulisSync();
+}
+function bukaDariArsip(id) {
+  var dariPusat = ARSIP_UI.tab === "pusat";
+  var ambil = dariPusat ? apiArsip({ aksi: "ambil", id: id, password: sandiAdmin() }).then(function (j) { return j.data; })
+    : arsipLokal.ambil(id).then(function (r) { if (!r) throw new Error("Laporan tidak ditemukan di perangkat ini."); return r.data; });
+  var lama = adaIsi(S) ? arsipLokal.simpan(S).catch(function () {}).then(function () { return kirimArsip(); }) : Promise.resolve();
+  document.getElementById("arsipDaftar").innerHTML = '<div class="kosong">Membuka laporan…</div>';
+  lama.then(function () { return ambil; }).then(function (data) {
+    if (!data || !data.penetapan) throw new Error("Isi laporan tidak dapat dibaca.");
+    S = Object.assign(kosong(), data);
+    document.getElementById("selDok").value = S.dok || "laporan";
+    ARSIP.terakhir = ""; ARSIP.galat = "";
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+    arsipLokal.simpan(S).catch(function () {});
+    document.body.classList.remove("lihat");
+    tutupArsip(); renderForm(); renderPaper(); window.scrollTo(0, 0);
+  }).catch(function (e) { alert(e.message); muatArsip(); });
+}
+function hapusDariArsip(id) {
+  var pusat = ARSIP_UI.tab === "pusat", m = ((pusat ? ARSIP_UI.pusat : ARSIP_UI.lokal) || []).filter(function (x) { return x.id === id; })[0] || {};
+  if (!confirm("Hapus \"" + (m.judul || "laporan ini") + "\" dari " + (pusat ? "arsip pusat (semua pegawai)" : "perangkat ini") + "? Tindakan ini tidak dapat dibatalkan.")) return;
+  var kerja = pusat ? apiArsip({ aksi: "hapus", id: id, password: sandiAdmin() }) : arsipLokal.hapus(id);
+  kerja.then(function () {
+    if (id === S.id) { S = kosong(S); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} renderForm(); renderPaper(); }
+    muatArsip();
+  }).catch(function (e) { alert(e.message); });
+}
+function laporanBaru(tanya) {
+  if (tanya && !confirm("Mulai laporan baru? Laporan yang sedang dibuka tetap tersimpan di menu Arsip.")) return false;
+  if (adaIsi(S)) { arsipLokal.simpan(S).catch(function () {}); kirimArsip(); }
+  S = kosong(S); ARSIP.terakhir = ""; ARSIP.galat = "";
+  document.getElementById("selDok").value = "laporan";
+  semua(); return true;
 }
 
 /* ---------- util ---------- */
@@ -1624,10 +1866,22 @@ tampilMasuk(!sudahMasuk());
 var selDok = document.getElementById("selDok"); selDok.value = S.dok || "laporan";
 selDok.onchange = function () { S.dok = selDok.value; simpan(); renderPaper(); };
 document.getElementById("btnPrint").onclick = function () { if (bolehCetak()) window.print(); };
-document.getElementById("btnNew").onclick = function () {
-  if (!confirm("Mulai laporan baru? Isian laporan ini dihapus; tim pelaksana, Kepala BHP, dan DIPA tetap disimpan.")) return;
-  S = kosong(S); semua();
-};
+document.getElementById("btnNew").onclick = function () { laporanBaru(true); };
+document.getElementById("btnArsip").onclick = bukaArsip;
+document.getElementById("arsipTutup").onclick = tutupArsip;
+document.getElementById("arsipBaru").onclick = function () { if (laporanBaru(adaIsi(S))) tutupArsip(); };
+document.getElementById("arsipCari").addEventListener("input", gambarArsip);
+document.getElementById("arsip").addEventListener("click", function (e) {
+  if (e.target.id === "arsip") return tutupArsip();
+  var t = e.target.closest("[data-tab]"); if (t) { ARSIP_UI.tab = t.getAttribute("data-tab"); ARSIP_UI.pesan = ""; muatArsip(); return; }
+  var f = e.target.closest("[data-saring]"); if (f) { ARSIP_UI.saring = f.getAttribute("data-saring"); gambarArsip(); return; }
+  var b = e.target.closest("[data-ar]"); if (!b) return;
+  if (b.getAttribute("data-ar") === "buka") bukaDariArsip(b.getAttribute("data-id"));
+  else hapusDariArsip(b.getAttribute("data-id"));
+});
+document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !document.getElementById("arsip").hidden) tutupArsip(); });
+window.addEventListener("beforeprint", function () { if (!kurangRuj().length) tandaiSelesai(); });
+document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden" && adaIsi(S)) jadwalArsip(true); });
 
 /* Unduh Word: berkas MHTML (.doc) supaya logo dan foto ikut tertanam */
 document.getElementById("btnWord").onclick = function () {
@@ -1650,6 +1904,7 @@ document.getElementById("btnWord").onclick = function () {
   a.href = URL.createObjectURL(new Blob([out], { type: "application/msword" }));
   a.download = nama.trim().replace(/[\/\\:*?"<>|]/g, "-") + (S.tglKegiatan ? " " + S.tglKegiatan : "") + ".doc";
   document.body.appendChild(a); a.click(); a.remove();
+  tandaiSelesai();
 };
 
 renderForm(); renderPaper();
