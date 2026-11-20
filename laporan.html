@@ -1156,6 +1156,7 @@ function renderForm() {
       (S.jenis === "kepailitan" && S.ruj && S.ruj.urus && S.ruj.urus.teks ? tb("aiPosisi", "posisi", "Ringkas posisi perkara") : "") + "</div>" +
       '<details class="hint"><summary style="cursor:pointer">Penjelasan</summary><p class="hint">Fitur ini memakai AI (Claude, Anthropic) untuk membaca foto dan data laporan, lalu mengisi bagian yang masih kosong. Data dan foto dikirim ke layanan Claude melalui server aplikasi hanya saat tombol ditekan. Kunci API tersimpan di server, tidak di perangkat ini. Hasilnya tetap harus diperiksa.</p></details>', false) + "</div>";
 
+  h += kartuTtd();
   var kurang = kurangRuj();
   h += '<div class="card"><h2>6. Cetak laporan</h2>' +
     (kurang.length ? '<p class="hint" style="color:var(--bad)"><b>Belum bisa dicetak:</b> unggah ' + esc(kurang.join(" dan ")) + " di langkah 1.</p>" : '<p class="hint">Periksa pratinjau. Tulisan <span style="color:#c00000">merah</span> berarti masih kosong.</p>') +
@@ -1165,7 +1166,7 @@ function renderForm() {
     lipat("naskah", "Ubah isi laporan sendiri", '<p class="hint">Mengetik di kotak mana pun menjadikannya manual (tidak lagi mengikuti isian).</p>' + ovArea("A.1 Umum", "umum", "Satu paragraf per baris.", true) + ovArea("A.2 Maksud dan Tujuan", "maksud", "Satu butir per baris.") + ovArea("A.4 Dasar", "dasar", "Satu butir per baris.") +
     ovArea("C. Hasil yang Dicapai", "hasil", "Satu butir per baris.") + ovArea("D.1 Simpulan", "simpulan") + ovArea("D.2 Saran", "saran"), false) + "</div>";
 
-  var st = Math.max(0, Math.min(2, +S.step || 0)), peta = S.jenis === "kepailitan" ? [0, 0, 0, 0, 1, 1, 2, 2] : [0, 0, 0, 1, 1, 2, 2];
+  var st = Math.max(0, Math.min(2, +S.step || 0)), peta = S.jenis === "kepailitan" ? [0, 0, 0, 0, 1, 1, 2, 2, 2] : [0, 0, 0, 1, 1, 2, 2, 2];
   var nama = ["Surat Tugas", "Isi Kegiatan", "Cetak"];
   var lead = ["Pilih jenis kegiatan, lalu unggah Surat Tugas. Tanggal, tim, dan penetapan terisi sendiri.",
     (peny ? "Pilih hasil tiap penetapan, " : "Lengkapi data kegiatan, ") + "unggah foto, lalu ceritakan kegiatannya (boleh pakai suara 🎤).",
@@ -1273,11 +1274,11 @@ function buildST(word) {
     row("Untuk", daftarHtml([keg.charAt(0).toUpperCase() + keg.slice(1) + " pada hari " + waktuTxt(", tanggal ") + " di " + ph(S.wilayah, "wilayah kegiatan") + ";",
       "Selama melaksanakan kegiatan tersebut yang bersangkutan dibebastugaskan dari tugas kedinasan sehari-hari;", "Melaporkan hasil kegiatan kepada Kepala Balai Harta Peninggalan Medan;", "Dilaksanakan dengan penuh tanggung jawab."], function (i) { return (i + 1) + "."; }));
   h += '<p style="margin-top:8pt">Demikian Surat Tugas ini dikeluarkan untuk dilaksanakan sebagaimana mestinya.</p>' +
-    '<table class="ttd"><tr><td></td><td style="text-align:left;padding-left:1.5cm">' + esc(S.kota) + ", " + R(tgl(S.stTanggal, "tanggal surat tugas")) + "<br>Kepala,<br><br><br><br>" + R(ph(S.kepala, "nama Kepala BHP")) + "</td></tr></table>";
+    '<table class="ttd"><tr><td></td><td style="text-align:left;padding-left:1.5cm">' + esc(S.kota) + ", " + R(tgl(S.stTanggal, "tanggal surat tugas")) + "<br>Kepala,<br>" + (ttdImg(S.kepala) || "<br><br><br>") + "<br>" + R(ph(S.kepala, "nama Kepala BHP")) + "</td></tr></table>";
   h += PB + '<p style="margin:0;text-align:left"><b>LAMPIRAN</b></p><p style="margin:0;text-align:left">Surat Tugas Kepala Balai Harta Peninggalan Medan</p>' +
     KV(0, [["Nomor", R(ph(S.stNomor, "nomor surat tugas"))], ["Tanggal", R(tgl(S.stTanggal, "tanggal surat tugas"))]], 2) +
     '<p class="ctr"><b>DAFTAR NAMA PEJABAT/PEGAWAI</b></p>' + tabelPegawai(0) +
-    '<table class="ttd"><tr><td></td><td style="text-align:left;padding-left:1.5cm">Kepala,<br><br><br><br>' + R(ph(S.kepala, "nama Kepala BHP")) + "</td></tr></table>";
+    '<table class="ttd"><tr><td></td><td style="text-align:left;padding-left:1.5cm">Kepala,<br>' + (ttdImg(S.kepala) || "<br><br><br>") + "<br>" + R(ph(S.kepala, "nama Kepala BHP")) + "</td></tr></table>";
   return h;
 }
 
@@ -1299,6 +1300,86 @@ function gabungDekat(kr) {
   return hasil.map(function (a) {
     return { tgl: a.tgl, grup: a.grup, jam: a.jam, jam2: a.mulai != null && a.akhir > a.mulai ? jamDari(a.akhir) : "", uraian: a.teks.join(" ") };
   });
+}
+/* ---------- Tanda tangan digital: dibuat sekali per orang, dipakai di semua tempat nama itu muncul ---------- */
+var KEY_TTD = "bhp-ttd", TTD = {}, TTD_WORD = null, TTD_WORD_TERAKHIR = [];
+try { TTD = JSON.parse(localStorage.getItem(KEY_TTD)) || {}; } catch (e) { TTD = {}; }
+function kunciOrang(nama, nip) { return String(nip || "").replace(/\D/g, "") || String(nama || "").toLowerCase().replace(/[^a-z]/g, ""); }
+function simpanTtd() { try { localStorage.setItem(KEY_TTD, JSON.stringify(TTD)); } catch (e) { alert("Tanda tangan tidak dapat disimpan di browser ini."); } }
+function nipOrang(nama) { var q = typeof PEGAWAI !== "undefined" ? PEGAWAI.filter(function (x) { return x.nama === nama; })[0] : null; return q ? q.nip : ""; }
+/* Semua penanda tangan unik di dokumen ini (penanggung jawab, anggota tim, Kepala BHP) */
+function daftarPenandatangan() {
+  var hasil = [], ada = {};
+  function tambah(nama, nip, peran) {
+    if (!String(nama || "").trim()) return;
+    var k = kunciOrang(nama, nip || nipOrang(nama)); if (!k) return;
+    if (ada[k]) { if (ada[k].peran.indexOf(peran) < 0) ada[k].peran.push(peran); return; }
+    ada[k] = { kunci: k, nama: nama, peran: [peran] }; hasil.push(ada[k]);
+  }
+  S.tim.forEach(function (t, i) { tambah(t.nama, t.nip, i === (+S.pj || 0) ? "Penanggung jawab" : "Anggota tim"); });
+  tambah(S.kepala, "", "Kepala BHP (laporan & Surat Tugas)");
+  return hasil;
+}
+/* Gambar tanda tangan untuk dokumen; di ekspor Word gambar dikirim sebagai lampiran terpisah */
+function ttdImg(nama, nip, tinggi) {
+  var src = TTD[kunciOrang(nama, nip || nipOrang(nama))]; if (!src) return "";
+  if (TTD_WORD) { TTD_WORD.push(src); src = "ttd" + (TTD_WORD.length - 1) + ".png"; }
+  return '<img src="' + src + '" height="' + (tinggi || 56) + '" style="height:' + (tinggi || 56) + 'px;width:auto" alt="">';
+}
+function kartuTtd() {
+  var org = daftarPenandatangan();
+  return '<div class="card"><h2>7. Tanda tangan</h2><p class="hint">Cukup sekali per orang. Tanda tangan langsung terpasang di semua tempat nama itu muncul dan tersimpan di perangkat ini untuk laporan berikutnya. Boleh dilewati bila akan ditandatangani basah.</p>' +
+    (org.length ? org.map(function (o) {
+      var src = TTD[o.kunci];
+      return '<div class="item' + (src ? " ok" : "") + '" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div style="flex:1;min-width:180px"><b>' + esc(o.nama) + '</b><div class="hint" style="margin:0">' + esc(o.peran.join(", ")) + "</div></div>" +
+        (src ? '<img src="' + src + '" alt="Tanda tangan" style="height:46px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:2px 6px">' : "") +
+        '<button class="sm' + (src ? "" : " pri") + '" data-act="ttdBuat" data-key="' + esc(o.kunci) + '" data-nama="' + esc(o.nama) + '">' + (src ? "Ulangi" : "✍️ Tanda tangan") + "</button>" +
+        (src ? '<button class="sm del" data-act="ttdHapus" data-key="' + esc(o.kunci) + '">Hapus</button>' : "") + "</div>";
+    }).join("") : '<p class="hint">Isi tim pelaksana dulu.</p>') + "</div>";
+}
+/* Kotak menggambar tanda tangan (jari, pena, atau mouse) */
+function bukaPadTtd(kunci, nama) {
+  var w = document.createElement("div");
+  w.className = "masuk"; w.style.zIndex = 60;
+  w.innerHTML = '<div class="kotak" style="max-width:560px;text-align:left"><h1 style="font-size:22px;margin:0 0 4px">Tanda tangan</h1><div class="t3" style="margin-bottom:10px">' + esc(nama) + "</div>" +
+    '<canvas id="padTtd" width="1000" height="360" style="width:100%;height:auto;border:1px dashed var(--gold);border-radius:10px;background:#fff;touch-action:none;cursor:crosshair"></canvas>' +
+    '<p class="hint">Tanda tangani di kotak putih. Atau unggah foto tanda tangan di kertas putih.</p>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="pri" id="padSimpan">Simpan</button><button id="padBersih">Bersihkan</button>' +
+    '<label class="unggah" style="margin:0;padding:8px 14px;font-size:13.5px;background:#fff;color:var(--fg);border:1px solid var(--line)"><input type="file" accept="image/*" id="padFile">Unggah gambar</label><button class="del" id="padBatal">Batal</button></div></div>';
+  document.body.appendChild(w);
+  var cv = w.querySelector("#padTtd"), cx = cv.getContext("2d"), gores = false, ada = false, last = null;
+  cx.lineWidth = 5; cx.lineCap = "round"; cx.lineJoin = "round"; cx.strokeStyle = "#0b1d5c";
+  function pos(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * cv.width / r.width, y: (e.clientY - r.top) * cv.height / r.height }; }
+  cv.addEventListener("pointerdown", function (e) { gores = true; ada = true; last = pos(e); cv.setPointerCapture(e.pointerId); cx.beginPath(); cx.arc(last.x, last.y, 2, 0, 7); cx.fillStyle = cx.strokeStyle; cx.fill(); });
+  cv.addEventListener("pointermove", function (e) { if (!gores) return; var p = pos(e); cx.beginPath(); cx.moveTo(last.x, last.y); cx.lineTo(p.x, p.y); cx.stroke(); last = p; });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(function (t) { cv.addEventListener(t, function () { gores = false; }); });
+  function tutup() { w.remove(); }
+  w.querySelector("#padBatal").onclick = tutup;
+  w.querySelector("#padBersih").onclick = function () { cx.clearRect(0, 0, cv.width, cv.height); ada = false; };
+  w.querySelector("#padFile").onchange = function (e) {
+    var f = e.target.files[0]; if (!f) return;
+    kecilkan(f, function (url) {
+      if (!url) return; var im = new Image();
+      im.onload = function () {
+        /* latar putih dibuat transparan agar menyatu dengan kertas */
+        var c2 = document.createElement("canvas"), sk = Math.min(1, 1000 / im.width, 360 / im.height); c2.width = Math.round(im.width * sk); c2.height = Math.round(im.height * sk);
+        var x2 = c2.getContext("2d"); x2.drawImage(im, 0, 0, c2.width, c2.height);
+        var d = x2.getImageData(0, 0, c2.width, c2.height); for (var i = 0; i < d.data.length; i += 4) { if (d.data[i] > 200 && d.data[i + 1] > 200 && d.data[i + 2] > 200) d.data[i + 3] = 0; } x2.putImageData(d, 0, 0);
+        cx.clearRect(0, 0, cv.width, cv.height); cx.drawImage(c2, (cv.width - c2.width) / 2, (cv.height - c2.height) / 2); ada = true;
+      };
+      im.src = url;
+    });
+  };
+  w.querySelector("#padSimpan").onclick = function () {
+    if (!ada) { alert("Kotak tanda tangan masih kosong."); return; }
+    /* potong ruang kosong di sekeliling goresan */
+    var d = cx.getImageData(0, 0, cv.width, cv.height).data, x0 = cv.width, y0 = cv.height, x1 = 0, y1 = 0;
+    for (var y = 0; y < cv.height; y += 2) for (var x = 0; x < cv.width; x += 2) if (d[(y * cv.width + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 <= x0) { alert("Kotak tanda tangan masih kosong."); return; }
+    var c3 = document.createElement("canvas"), pad = 8; c3.width = x1 - x0 + pad * 2; c3.height = y1 - y0 + pad * 2;
+    c3.getContext("2d").drawImage(cv, x0 - pad, y0 - pad, c3.width, c3.height, 0, 0, c3.width, c3.height);
+    TTD[kunci] = c3.toDataURL("image/png"); simpanTtd(); tutup(); semua();
+  };
 }
 function buildPaper(word) {
   if (S.dok === "st") return buildST(word);
@@ -1364,7 +1445,7 @@ function buildPaper(word) {
   /* tanda tangan */
   var nipDari = function (nama) { var q = typeof PEGAWAI !== "undefined" ? PEGAWAI.filter(function (x) { return x.nama === nama; })[0] : null; return q ? q.nip : ""; };
   var lain = S.tim.filter(function (_, i) { return i !== (+S.pj < S.tim.length ? +S.pj : 0); });
-  var nipKepala = nipDari(S.kepala), ruangTtd = '<td style="height:62pt"></td><td></td>';
+  var nipKepala = nipDari(S.kepala), ruangTtd = '<td style="height:62pt;vertical-align:middle">' + ttdImg(pj.nama, pj.nip) + '</td><td style="vertical-align:middle">' + ttdImg(S.kepala, nipKepala) + "</td>";
   h += tbl("kv tempat", 9, [sel1("Dibuat di", 2.9) + sel1(":", 0.45) + sel1(esc(S.kota)), sel1("pada tanggal", 2.9) + sel1(":", 0.45) + sel1(R(tgl(tLap, "tanggal laporan")))], "margin-top:14pt;margin-bottom:8pt");
   h += '<table class="ttd" width="' + cmPx(LEBAR) + '" cellpadding="0" cellspacing="0" border="0">' +
     "<tr><td></td><td>Mengetahui,</td></tr>" +
@@ -1375,7 +1456,7 @@ function buildPaper(word) {
     h += '<p style="margin:16pt 0 6pt"><b>Anggota Tim:</b></p>' +
       tbl("kv anggota", 0, lain.map(function (t, i) {
         return sel1((i + 1) + ".", 0.8, "padding-bottom:16pt") + sel1(R(ph(t.nama, "nama")) + (t.nip.trim() ? "<br>NIP. " + esc(t.nip) : ""), 8.2, "padding-bottom:16pt") +
-          sel1("(..................................)", 0, "vertical-align:bottom;padding-bottom:16pt");
+          sel1(ttdImg(t.nama, t.nip, 44) || "(..................................)", 0, "vertical-align:bottom;padding-bottom:16pt");
       }));
   }
 
@@ -1503,6 +1584,8 @@ form.addEventListener("click", function (e) {
   if (a === "aiPosisi") { aiPosisi(); return; }
   if (a === "aiCerita") { aiCerita(); return; }
   if (a === "suara") { toggleSuara(); return; }
+  if (a === "ttdBuat") { bukaPadTtd(btn.getAttribute("data-key"), btn.getAttribute("data-nama")); return; }
+  if (a === "ttdHapus") { if (!confirm("Hapus tanda tangan ini dari perangkat?")) return; delete TTD[btn.getAttribute("data-key")]; simpanTtd(); }
   if (a === "word") { document.getElementById("btnWord").click(); return; }
   if (a === "lihatST") { S.dok = S.dok === "st" ? "laporan" : "st"; document.getElementById("selDok").value = S.dok; simpan(); renderForm(); renderPaper(); return; }
   if (a === "hapusCerita") { if (!confirm("Kosongkan cerita kegiatan?")) return; S.cerita = ""; }
@@ -1553,12 +1636,13 @@ document.getElementById("btnWord").onclick = function () {
     "table.b td,table.b th{border:1px solid #000;padding:3pt 4pt;vertical-align:top;font-size:9.5pt;text-align:justify}table.b th{text-align:center;vertical-align:middle}table.kop{width:100%;border-bottom:3px double #000}table.kop td{text-align:center;vertical-align:middle}" +
     "table.ttd{width:100%}table.ttd td{width:50%;text-align:center;vertical-align:top}table.foto{width:100%}table.foto td{width:50%;text-align:center;vertical-align:top;font-size:9pt;padding:4pt}.pb{display:none}" +
     "@page{size:21cm 29.7cm;margin:2cm 2cm 2.5cm 3cm}";
-  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>' + css + "</style></head><body>" + buildPaper(true) + "</body></html>";
+  var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>' + css + "</style></head><body>" + (function () { TTD_WORD = []; var x = buildPaper(true); TTD_WORD_TERAKHIR = TTD_WORD; TTD_WORD = null; return x; })() + "</body></html>";
   function b64(s) { return btoa(unescape(encodeURIComponent(s))); }
   function lipat(s) { return s.replace(/(.{76})/g, "$1\r\n"); }
   var bd = "----=_BHP_LAPORAN", base = "file:///C:/laporan/", nl = "\r\n";
   function bagian(nama, tipe, data) { return "--" + bd + nl + "Content-Location: " + base + nama + nl + "Content-Transfer-Encoding: base64" + nl + "Content-Type: " + tipe + nl + nl + lipat(data) + nl + nl; }
   var out = "MIME-Version: 1.0" + nl + 'Content-Type: multipart/related; boundary="' + bd + '"' + nl + nl + bagian("laporan.htm", 'text/html; charset="utf-8"', b64(html)) + bagian("logo.png", "image/png", LOGO.split(",")[1]);
+  (TTD_WORD_TERAKHIR || []).forEach(function (u, i) { out += bagian("ttd" + i + ".png", "image/png", u.split(",")[1]); });
   S.krono.filter(function (k) { return k.foto; }).forEach(function (k, i) { out += bagian("foto" + i + ".jpg", "image/jpeg", k.foto.split(",")[1]); });
   out += "--" + bd + "--" + nl;
   var nama = (S.dok === "st" ? "Surat Tugas " : "Laporan ") + (S.jenis === "penyumpahan" ? "Penyumpahan " + (S.penetapan[0].wali.trim() || "") : jenisOf(S.jenis).label);
