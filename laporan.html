@@ -840,6 +840,13 @@ function ist(p) {
     ? { W: "Pengampu", a: "terampu", atas: "atas diri", perkara: "pengampuan", pengawas: "pengampu pengawas", ba: "Berita Acara Pengambilan Sumpah Pengampu" }
     : { W: "Wali", a: "anak", atas: "atas diri anak bernama", perkara: "perwalian", pengawas: "wali pengawas (toeziende voogd)", ba: "Berita Acara Pengambilan Sumpah Wali" };
 }
+/* Tindak lanjut bila belum disumpah (selain menolak): upaya Zoompah atau undangan ke kantor */
+function tindakLanjut(p) {
+  var W = ist(p).W;
+  if (p.hasil === "jadwal_zoom") return "Dijadwalkan pengambilan sumpah secara virtual (Zoompah); apabila tidak terlaksana, " + W + " diundang hadir ke Kantor Balai Harta Peninggalan Medan untuk diambil sumpahnya";
+  if (p.hasil === "gagal_tidak_ditemui" || p.hasil === "ditunda") return "Diupayakan pengambilan sumpah secara virtual (Zoompah) atau " + W + " diundang hadir ke Kantor Balai Harta Peninggalan Medan untuk diambil sumpahnya";
+  return "";
+}
 function refPen(p) { return "Penetapan " + ph(p.pn, "nama pengadilan") + " Nomor: " + ph(p.nomor, "nomor penetapan") + " tanggal " + tgl(p.tgl, "tanggal penetapan"); }
 function alasan(p) { return p.sub === "__lain" ? p.subLain.trim() : p.sub; }
 function campur() { var a = {}; S.penetapan.forEach(function (p) { a[p.jenis] = 1; }); return a; }
@@ -911,6 +918,9 @@ var AUTO = {
       else if (h === "gagal_menolak") t = "Pengambilan sumpah " + w + " berdasarkan " + refPen(p) + " tidak dapat dilaksanakan karena " + k.W + " menolak untuk diambil sumpahnya" + (al ? " dengan alasan " + kecil(al) : "");
       else if (h === "gagal_tidak_ditemui") t = "Pengambilan sumpah " + w + " berdasarkan " + refPen(p) + " tidak dapat dilaksanakan karena " + k.W + " tidak dapat ditemui di " + ph(p.alamat, "alamat") + (al ? " (" + kecil(al) + ")" : "");
       else t = "Pengambilan sumpah " + w + " berdasarkan " + refPen(p) + " belum dapat dilaksanakan" + (al ? " karena " + kecil(al) : "") + (h === "jadwal_zoom" ? " dan dijadwalkan ulang secara virtual melalui Zoom (Zoompah)" : " dan akan dijadwalkan ulang");
+      var tl = tindakLanjut(p);
+      if (tl && h !== "jadwal_zoom") t += ". Terhadap hal tersebut, Tim akan mengupayakan pengambilan sumpah " + w + " secara virtual (Zoompah) atau menyampaikan undangan kepada " + ist(p).W + " untuk hadir ke Kantor Balai Harta Peninggalan Medan guna diambil sumpahnya";
+      else if (h === "jadwal_zoom") t += ". Apabila penyumpahan virtual tidak terlaksana, " + ist(p).W + " akan diundang untuk hadir ke Kantor Balai Harta Peninggalan Medan guna diambil sumpahnya";
       return t + (i === n - 1 ? "." : i === n - 2 ? "; dan" : ";");
     }).join("\n");
   },
@@ -946,8 +956,7 @@ var AUTO = {
     if (ada.berhasil_pnbp) t.push("Balai Harta Peninggalan Medan perlu melakukan pemantauan berkala terhadap pengurusan harta kekayaan yang telah dicatat serta memastikan penyetoran PNBP sesuai ketentuan.");
     if (ada.berhasil_nihil) t.push("Terhadap perwalian/pengampuan yang tidak terdapat harta, pengawasan tetap dilaksanakan dan pencatatan harta dilakukan apabila di kemudian hari diketahui terdapat harta kekayaan.");
     if (ada.gagal_menolak) t.push("Terhadap wali/pengampu yang menolak disumpah, perlu disampaikan pemberitahuan tertulis mengenai kewajiban pengambilan sumpah serta dilakukan koordinasi dengan pengadilan yang mengeluarkan penetapan.");
-    if (ada.gagal_tidak_ditemui) t.push("Terhadap wali/pengampu yang tidak dapat ditemui, perlu dilakukan penjadwalan ulang serta koordinasi dengan aparatur desa/kelurahan setempat untuk memperoleh alamat dan kontak terkini.");
-    if (ada.ditunda || ada.jadwal_zoom) t.push("Terhadap penyumpahan yang ditunda, perlu segera ditetapkan jadwal pengganti.");
+    if (ada.gagal_tidak_ditemui || ada.ditunda || ada.jadwal_zoom) t.push("Terhadap wali/pengampu yang belum dapat diambil sumpahnya (selain yang menolak), Tim perlu mengupayakan pengambilan sumpah secara virtual melalui Zoom (Zoompah) atau menyampaikan undangan agar yang bersangkutan hadir ke Kantor Balai Harta Peninggalan Medan untuk diambil sumpahnya, didukung koordinasi dengan aparatur desa/kelurahan setempat untuk memperoleh alamat dan kontak terkini.");
     t.push("Koordinasi dengan aparatur desa/kelurahan setempat tetap perlu dijaga guna mendukung kelancaran tugas pengawasan di masa mendatang.");
     return t.join(" ");
   }
@@ -1272,6 +1281,25 @@ function buildST(word) {
   return h;
 }
 
+/* Butir kronologi yang jamnya sama atau berdekatan (≤ 10 menit, hari dan sub-judul sama) digabung menjadi satu paragraf */
+var JEDA_GABUNG = 10;
+function menitDari(s) { var m = /^(\d{1,2}):(\d{2})/.exec(s || ""); return m ? +m[1] * 60 + +m[2] : null; }
+function jamDari(n) { return (n < 600 ? "0" : "") + Math.floor(n / 60) + ":" + (n % 60 < 10 ? "0" : "") + (n % 60); }
+function gabungDekat(kr) {
+  var hasil = [];
+  kr.forEach(function (k) {
+    var t = menitDari(k.jam), t2 = menitDari(k.jam2), tg = k.tgl || S.tglKegiatan, g = (k.grup || "").trim(), u = k.uraian.trim().replace(/\s*[;,]?\s*$/, "");
+    if (!/[.!?]$/.test(u)) u += ".";
+    var a = hasil[hasil.length - 1];
+    if (a && t != null && a.akhir != null && a.tgKey === tg && a.grup === g && t >= a.mulai && t - a.akhir <= JEDA_GABUNG) {
+      if (a.teks.indexOf(u) < 0) a.teks.push(u);
+      a.akhir = Math.max(a.akhir, t2 != null ? t2 : t);
+    } else hasil.push({ tgl: k.tgl, tgKey: tg, grup: g, mulai: t, akhir: t2 != null ? t2 : t, teks: [u], jam: k.jam });
+  });
+  return hasil.map(function (a) {
+    return { tgl: a.tgl, grup: a.grup, jam: a.jam, jam2: a.mulai != null && a.akhir > a.mulai ? jamDari(a.akhir) : "", uraian: a.teks.join(" ") };
+  });
+}
 function buildPaper(word) {
   if (S.dok === "st") return buildST(word);
   var peny = S.jenis === "penyumpahan", h = "", ob = objekJudul(), tLap = S.tglLaporan || S.tglSelesai || S.tglKegiatan, d = pecah(tLap);
@@ -1305,10 +1333,10 @@ function buildPaper(word) {
 
   /* B. Kegiatan */
   h += Hd(0.75, "B.", "Kegiatan yang Dilaksanakan");
-  var kr = S.krono.filter(function (k) { return k.uraian.trim(); });
+  var kr = gabungDekat(S.krono.filter(function (k) { return k.uraian.trim(); }));
   var lastT = "", lastG = "", nH = 0, mh = multi() && kr.some(function (k) { return k.tgl; });
   h += kr.length ? kr.map(function (k) {
-    var o = "", w = k.jam ? "Pada pukul " + jam(k.jam) + (k.jam2 ? " hingga " + jam(k.jam2) : "") + " WIB, " : "", g = (k.grup || "").trim();
+    var o = "", w = k.jam ? "Pada pukul " + jam(k.jam) + (k.jam2 && k.jam2 !== k.jam ? " hingga " + jam(k.jam2) : "") + " WIB, " : "", g = (k.grup || "").trim();
     if (mh && k.tgl && k.tgl !== lastT) { lastT = k.tgl; lastG = ""; nH++; o += Hd(1.5, nH + ".", hari(k.tgl) + ", " + tgl(k.tgl)); }
     if (g && g !== lastG) o += P(mh ? 1.5 : 0.75, "<b>" + esc(g) + "</b>", "margin-top:6pt");
     lastG = g;
@@ -1319,11 +1347,11 @@ function buildPaper(word) {
   h += Hd(0.75, "C.", "Hasil yang Dicapai") + P(0.75, "Berdasarkan serangkaian kegiatan di atas, hasil yang dicapai oleh Tim adalah sebagai berikut:") + baris(T("hasil")).map(function (s, i) { return LI(1.5, (i + 1) + ".", s); }).join("");
   if (peny && S.penetapan.length > 1) {
     var tot = 0;
-    h += P(0.75, "Rekapitulasi hasil pelaksanaan:") + '<table class="b" style="margin-left:.75cm;margin-bottom:8pt;width:' + (LEBAR - 0.75) + 'cm"><colgroup><col style="width:0.8cm"><col style="width:4.1cm"><col style="width:3.3cm"><col><col style="width:2.2cm"></colgroup><tr><th>No.</th><th>Nomor Penetapan</th><th>Wali / Pengampu</th><th>Hasil</th><th>PNBP</th></tr>' +
+    h += P(0.75, "Rekapitulasi hasil pelaksanaan:") + '<table class="b" style="margin-left:.75cm;margin-bottom:8pt;width:' + (LEBAR - 0.75) + 'cm"><colgroup><col style="width:0.8cm"><col style="width:3.3cm"><col style="width:2.6cm"><col><col style="width:1.9cm"><col style="width:3.4cm"></colgroup><tr><th>No.</th><th>Nomor Penetapan</th><th>Wali / Pengampu</th><th>Hasil</th><th>PNBP</th><th>Tindak Lanjut</th></tr>' +
       S.penetapan.map(function (p, i) {
         var hs = hasilOf(p.hasil), n = hs.pnbp ? angka(p.pnbp) : 0, al = hs.sub ? alasan(p) : ""; tot += n;
-        return "<tr><td>" + (i + 1) + ".</td><td>" + R(ph(p.nomor, "nomor")) + "</td><td>" + R(ph(p.wali, "nama")) + "</td><td>" + esc(hs.singkat) + (al ? ": " + esc(kecil(al)) : "") + '</td><td style="white-space:nowrap">' + (hs.pnbp ? rp(n) : "–") + "</td></tr>";
-      }).join("") + '<tr><td colspan="4"><b>Jumlah PNBP</b></td><td style="white-space:nowrap"><b>' + rp(tot) + "</b></td></tr></table>";
+        return "<tr><td>" + (i + 1) + ".</td><td>" + R(ph(p.nomor, "nomor")) + "</td><td>" + R(ph(p.wali, "nama")) + "</td><td>" + esc(hs.singkat) + (al ? ": " + esc(kecil(al)) : "") + '</td><td style="white-space:nowrap">' + (hs.pnbp ? rp(n) : "–") + "</td><td>" + (p.hasil === "jadwal_zoom" ? "Zoompah; bila tidak terlaksana, undangan ke Kantor BHP Medan" : tindakLanjut(p) ? "Zoompah atau undangan ke Kantor BHP Medan" : "–") + "</td></tr>";
+      }).join("") + '<tr><td colspan="4"><b>Jumlah PNBP</b></td><td style="white-space:nowrap"><b>' + rp(tot) + "</b></td><td></td></tr></table>";
   }
 
   /* D, E */
