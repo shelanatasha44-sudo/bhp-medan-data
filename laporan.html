@@ -143,8 +143,8 @@ textarea.tall { min-height: 170px; }
 .paper table.kop { width: 100%; border-bottom: 3px double #000; margin-bottom: 14pt; }
 .paper table.kop td { vertical-align: middle; text-align: center; padding-bottom: 6pt; line-height: 1.2; }
 .paper table.ttd { width: 100%; margin-top: 10pt; }
-.paper table.ttd td { width: 50%; vertical-align: top; text-align: center; padding: 0 6pt; }
-.paper table.foto { width: 100%; }
+.paper table.ttd td { width: 50%; vertical-align: top; text-align: center; padding: 0 6pt; line-height: 1.4; }
+.paper table.foto { width: 100%; table-layout: fixed; margin-bottom: 6pt; }
 .paper table.foto td { width: 50%; vertical-align: top; text-align: center; padding: 4pt 5pt 10pt; font-size: 9pt; line-height: 1.3; }
 .paper table.foto img { max-width: 100%; height: auto; }
 .mbar { display: none; }
@@ -1304,17 +1304,20 @@ function buildPaper(word) {
   if (S.dok === "st") return buildST(word);
   var peny = S.jenis === "penyumpahan", h = "", ob = objekJudul(), tLap = S.tglLaporan || S.tglSelesai || S.tglKegiatan, d = pecah(tLap);
   var logo = function (w) { return '<img src="' + (word ? "logo.png" : LOGO) + '" width="' + w + '" height="' + Math.round(w * 1.1) + '" alt="Logo">'; };
-  var objHtml = ob.length > 1 ? ob.map(function (o, i) { return (i + 1) + ". " + R(o); }).join("<br>") : R(ob[0] || "");
+  var objHtml = ob.length > 1
+    ? '<table align="center" width="' + cmPx(14) + '" cellpadding="0" cellspacing="0" border="0" style="width:14cm;margin:0 auto;border-collapse:collapse;text-align:left">' +
+      ob.map(function (o, i) { return "<tr>" + sel1((i + 1) + ".", 0.7) + sel1(R(o) + (i < ob.length - 1 ? ";" : ""), 0, "text-align:justify") + "</tr>"; }).join("") + "</table>"
+    : R(ob[0] || "");
   var judulHtml = "<b>" + esc(judul()) + (ob.length ? " BERDASARKAN:" : "") + "</b>";
 
   if (S.sampul) {
-    h += '<div class="cover ctr"><div><p class="ctr" style="font-size:16pt;margin-bottom:0"><b>LAPORAN</b></p><p class="ctr"><b>TENTANG</b></p><p class="ctr" style="font-size:13pt">' + judulHtml + '</p><p class="ctr">' + objHtml + "</p>" +
+    h += '<div class="cover ctr"><div><p class="ctr" style="font-size:16pt;margin-bottom:0"><b>LAPORAN</b></p><p class="ctr"><b>TENTANG</b></p><p class="ctr" style="font-size:13pt">' + judulHtml + "</p>" + (ob.length > 1 ? objHtml : '<p class="ctr">' + objHtml + "</p>") +
       '<p class="ctr" style="margin-top:18pt">' + esc(S.kota) + ", " + R(tgl(tLap, "tanggal laporan")) + '</p></div><div style="margin:30pt 0">' + logo(150) + "</div>" +
       '<div><p class="ctr" style="margin:0"><b>' + KOP.l1 + '</b></p><p class="ctr" style="margin:0"><b>' + KOP.l2 + '</b></p><p class="ctr" style="margin:0"><b>' + KOP.l3 + '</b></p><p class="ctr"><b>' + (d ? d.getFullYear() : "") + "</b></p></div></div>" + PB;
   }
 
   h += kopHtml(logo);
-  h += '<p class="ctr" style="margin:0"><b>LAPORAN</b></p><p class="ctr" style="margin:0"><b>TENTANG</b></p><p class="ctr" style="margin:0">' + judulHtml + '</p><p class="ctr" style="margin-bottom:14pt">' + objHtml + "</p>";
+  h += '<p class="ctr" style="margin:0"><b>LAPORAN</b></p><p class="ctr" style="margin:0"><b>TENTANG</b></p><p class="ctr" style="margin:0">' + judulHtml + "</p>" + (ob.length > 1 ? '<div style="margin-bottom:14pt">' + objHtml + "</div>" : '<p class="ctr" style="margin-bottom:14pt">' + objHtml + "</p>");
 
   /* A. Pendahuluan */
   h += Hd(0.75, "A.", "Pendahuluan");
@@ -1359,24 +1362,35 @@ function buildPaper(word) {
   h += Hd(0.75, "E.", "Penutup") + P(0.75, "Demikian laporan pelaksanaan tugas ini dibuat dengan sebenar-benarnya sebagai wujud transparansi dan pertanggungjawaban atas tugas yang telah diamanatkan.");
 
   /* tanda tangan */
-  var sp = '<br><br><br>';
+  var nipDari = function (nama) { var q = typeof PEGAWAI !== "undefined" ? PEGAWAI.filter(function (x) { return x.nama === nama; })[0] : null; return q ? q.nip : ""; };
   var lain = S.tim.filter(function (_, i) { return i !== (+S.pj < S.tim.length ? +S.pj : 0); });
-  h += '<table class="ttd"><tr><td></td><td style="text-align:left;padding-left:1.5cm"><table style="border-collapse:collapse"><tr>' + sel1("Dibuat di", 2.4) + sel1(":", 0.4) + sel1(esc(S.kota)) + "</tr><tr>" + sel1("pada tanggal") + sel1(":") + sel1(R(tgl(tLap, "tanggal laporan"))) + "</tr></table></td></tr>" +
-    "<tr><td><br>" + R(ph(pj.jabatan, "jabatan")) + sp + "<br>" + R(ph(pj.nama, "nama")) + "</td><td>Mengetahui,<br>Kepala Balai Harta Peninggalan Medan" + sp + "<br>" + R(ph(S.kepala, "nama Kepala BHP")) + "</td></tr>" +
-    lain.map(function (t) { return "<tr><td>" + sp + "<br>" + R(ph(t.nama, "nama")) + "</td><td></td></tr>"; }).join("") + "</table>";
+  var nipKepala = nipDari(S.kepala), ruangTtd = '<td style="height:62pt"></td><td></td>';
+  h += tbl("kv tempat", 9, [sel1("Dibuat di", 2.9) + sel1(":", 0.45) + sel1(esc(S.kota)), sel1("pada tanggal", 2.9) + sel1(":", 0.45) + sel1(R(tgl(tLap, "tanggal laporan")))], "margin-top:14pt;margin-bottom:8pt");
+  h += '<table class="ttd" width="' + cmPx(LEBAR) + '" cellpadding="0" cellspacing="0" border="0">' +
+    "<tr><td></td><td>Mengetahui,</td></tr>" +
+    "<tr><td>" + R(ph(pj.jabatan, "jabatan")) + "</td><td>Kepala Balai Harta Peninggalan Medan</td></tr>" +
+    "<tr>" + ruangTtd + "</tr>" +
+    "<tr><td><b><u>" + R(ph(pj.nama, "nama")) + "</u></b>" + (pj.nip.trim() ? "<br>NIP. " + esc(pj.nip) : "") + "</td><td><b><u>" + R(ph(S.kepala, "nama Kepala BHP")) + "</u></b>" + (nipKepala ? "<br>NIP. " + esc(nipKepala) : "") + "</td></tr></table>";
+  if (lain.length) {
+    h += '<p style="margin:16pt 0 6pt"><b>Anggota Tim:</b></p>' +
+      tbl("kv anggota", 0, lain.map(function (t, i) {
+        return sel1((i + 1) + ".", 0.8, "padding-bottom:16pt") + sel1(R(ph(t.nama, "nama")) + (t.nip.trim() ? "<br>NIP. " + esc(t.nip) : ""), 8.2, "padding-bottom:16pt") +
+          sel1("(..................................)", 0, "vertical-align:bottom;padding-bottom:16pt");
+      }));
+  }
 
   /* dokumentasi */
   var ft = S.krono.filter(function (k) { return k.foto; });
   if (ft.length) {
-    h += PB + '<p class="ctr"><b>DOKUMENTASI</b></p><table class="foto">';
+    h += PB + '<p class="ctr"><b>DOKUMENTASI</b></p>';
     ft.forEach(function (k, i) {
-      var w = 290, hh = k.fw ? Math.round(w * k.fh / k.fw) : 218;
+      var sk = k.fw && k.fh ? Math.min(290 / k.fw, 220 / k.fh) : 1, w = k.fw ? Math.round(k.fw * sk) : 290, hh = k.fh ? Math.round(k.fh * sk) : 218;
       var cap = "Foto " + (i + 1) + (k.jam ? " - Waktu: " + jam(k.jam) + " WIB, " + tgl(k.tgl || S.tglKegiatan) : "") + (k.lokasi.trim() ? " | Lokasi: " + k.lokasi.trim() : "") + (k.ket.trim() ? " - " + k.ket.trim() : "");
-      if (i % 2 === 0) h += "<tr>";
-      h += '<td><img src="' + (word ? "foto" + i + ".jpg" : k.foto) + '" width="' + w + '" height="' + hh + '" alt=""><br>' + R(cap) + "</td>";
-      if (i % 2 === 1 || i === ft.length - 1) h += (i % 2 === 0 ? "<td></td>" : "") + "</tr>";
+      if (i % 2 === 0) h += '<table class="foto" width="' + cmPx(LEBAR) + '" cellpadding="0" cellspacing="0" border="0"><tr>';
+      var sendiri = i % 2 === 0 && i === ft.length - 1;
+      h += '<td' + (sendiri ? ' colspan="2"' : ' width="50%"') + '><img src="' + (word ? "foto" + i + ".jpg" : k.foto) + '" width="' + w + '" height="' + hh + '" alt=""><br>' + R(cap) + "</td>";
+      if (i % 2 === 1 || i === ft.length - 1) h += "</tr></table>";
     });
-    h += "</table>";
   }
   return h;
 }
@@ -1394,7 +1408,8 @@ function potongHalaman() {
     var atas = el.offsetTop, bawah = atas + el.offsetHeight;
     if (awal === null) awal = atas;
     var judul = el.classList.contains("hd") || el.tagName === "P" && el.firstElementChild && el.firstElementChild.tagName === "B" && el.textContent.trim().length < 90 || el.tagName === "P" && /:\s*$/.test(el.textContent) && el.textContent.trim().length < 140;
-    if (bawah - awal > batas && pages[pages.length - 1].length) {
+    var kini = pages[pages.length - 1], hanyaJudul = kini.length && kini.every(function (x) { return x.judul; });
+    if (bawah - awal > batas && kini.length && !hanyaJudul) {
       /* judul bagian jangan tertinggal sendirian di bawah halaman */
       var lalu = pages[pages.length - 1], bawa = [];
       while (lalu.length > 1 && lalu[lalu.length - 1].judul) bawa.unshift(lalu.pop());
