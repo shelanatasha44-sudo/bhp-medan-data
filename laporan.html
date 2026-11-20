@@ -135,7 +135,10 @@ textarea.tall { min-height: 170px; }
 .paper .pb { border-top: 2px dashed #b9b2a4; margin: 18mm -20mm 18mm -30mm; height: 0; }
 .paper .cover { text-align: center; min-height: 240mm; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
 .paper table { border-collapse: collapse; }
-.paper table.b td, .paper table.b th { border: 1px solid #000; padding: 3pt 5pt; vertical-align: top; font-size: 10pt; text-align: left; }
+.paper table.b td, .paper table.b th { border: 1px solid #000; padding: 3pt 4pt; vertical-align: top; font-size: 9.5pt; text-align: justify; }
+.paper table.b th { text-align: center !important; vertical-align: middle; }
+.paper table.b, .paper table.li, .paper table.hd, .paper table.kv { table-layout: fixed; }
+.paper table.li, .paper table.hd, .paper table.kv { page-break-inside: avoid; }
 .paper table.b th { text-align: center; }
 .paper table.kop { width: 100%; border-bottom: 3px double #000; margin-bottom: 14pt; }
 .paper table.kop td { vertical-align: middle; text-align: center; padding-bottom: 6pt; line-height: 1.2; }
@@ -1180,9 +1183,55 @@ function renderForm() {
 /* =====================================================================
    PRATINJAU LAPORAN (struktur mengikuti template BHP Medan)
    ===================================================================== */
-function P(indent, html, extra) { return '<p style="margin-left:' + indent + "cm;" + (extra || "") + '">' + html + "</p>"; }
-function LI(indent, mark, text) { return '<p style="margin-left:' + indent + "cm;text-indent:-0.75cm\">" + mark + '<span style="display:inline-block;width:' + (0.75 - 0.2 * mark.length).toFixed(2) + 'cm"></span>' + R(text) + "</p>"; }
-function Hd(indent, mark, text) { return '<p style="margin-left:' + indent + 'cm;text-indent:-0.75cm;margin-top:8pt;text-align:left"><b>' + mark + '<span style="display:inline-block;width:' + (0.75 - 0.2 * mark.length).toFixed(2) + 'cm"></span>' + esc(text) + "</b></p>"; }
+/* ---------- Tata letak laporan: paragraf, penomoran, subjudul, dan tabel tersembunyi ---------- */
+var LEBAR = 16; /* lebar teks A4 (21 cm − margin kiri 3 cm − kanan 2 cm) */
+/* Hitung kalimat; singkatan dan angka berdesimal tidak dihitung sebagai akhir kalimat */
+function kalimat(html) {
+  var t = String(html).replace(/<[^>]+>/g, " ").replace(/&[a-z#0-9]+;/gi, " ")
+    .replace(/\b(S\.H|M\.Hum|M\.H|M\.Kn|M\.Si|S\.E|S\.T|S\.Ak|S\.Kom|S\.Pd|A\.Md|NIP|NIK|No|Nomor|Kec|Kel|Jl|Kab|Prov|an|dkk|dll|dsb|Almh|Alm|Tn|Ny|Sdr|Sdri|Hj|Dr|Ir|Pdt|PN|PA|tgl|hlm|Rp)\./gi, "$1")
+    .replace(/(\w)\.(?=\w)/g, "$1").replace(/\[[^\]]*\]/g, "x");
+  var m = t.match(/[.!?](?=\s|$)/g);
+  return m ? m.length : (t.trim() ? 1 : 0);
+}
+function cmPx(x) { return Math.round(x * 37.8); }
+function sel1(isi, lebar, gaya) {
+  var rata = /text-align:\s*justify/.test(gaya || "") ? ' align="justify"' : "";
+  return '<td valign="top"' + rata + (lebar ? ' width="' + cmPx(lebar) + '"' : "") + ' style="' + (lebar ? "width:" + lebar + "cm;" : "") + "vertical-align:top;padding:0 0 3pt;" + (gaya || "") + '">' + isi + "</td>";
+}
+/* Tabel tanpa garis; indentasi memakai kolom pengisi agar sama persis di layar, PDF, dan Word */
+function tbl(kelas, kiri, barisSel, gaya) {
+  var isiK = barisSel.map(function (r) { return "<tr>" + (kiri > 0 ? sel1("", kiri) : "") + r + "</tr>"; }).join("");
+  return '<table class="' + kelas + '" width="' + cmPx(LEBAR) + '" cellpadding="0" cellspacing="0" border="0" style="width:' + LEBAR + "cm;border-collapse:collapse;" + (gaya || "") + '">' + isiK + "</table>";
+}
+/* Paragraf: rata kiri-kanan; indentasi baris pertama hanya bila lebih dari dua kalimat */
+function P(indent, html, extra) {
+  var ind = /text-align:\s*center/.test(extra || "") || kalimat(html) <= 2 ? "" : "text-indent:1.25cm;";
+  return '<p style="margin-left:' + indent + "cm;text-align:justify;" + ind + (extra || "") + '">' + html + "</p>";
+}
+/* Butir bernomor: nomor di kolom tetap, teks menggantung rapi dan rata kiri-kanan */
+function LI(indent, mark, text) {
+  return tbl("li", indent - 0.75, [sel1(mark, 0.75) + sel1(R(text), 0, "text-align:justify")], "margin-bottom:3pt");
+}
+/* Subjudul bernomor: tebal, rata kiri-kanan, baris lanjutan sejajar teks */
+function Hd(indent, mark, text) {
+  return tbl("hd", indent - 0.75, [sel1("<b>" + mark + "</b>", 0.75) + sel1("<b>" + esc(text) + "</b>", 0, "text-align:justify")], "margin-top:8pt;margin-bottom:3pt");
+}
+/* Isian berpola "Label : isi" sebagai tabel tanpa garis */
+function KV(indent, baris2, lebarLabel) {
+  return tbl("kv", indent, baris2.map(function (r) {
+    return sel1(r[0], lebarLabel || 3.2) + sel1(":", 0.45) + sel1(r[1], 0, "text-align:justify");
+  }), "margin-bottom:6pt");
+}
+/* Daftar bernomor di dalam sel tabel (tanpa indentasi tambahan) */
+/* Tabel daftar pegawai dengan lebar kolom tetap (NIP tidak terpotong) */
+function tabelPegawai(kiri) {
+  return '<table class="b" style="margin-left:' + kiri + "cm;margin-bottom:8pt;width:" + (LEBAR - kiri).toFixed(2) + 'cm"><colgroup><col style="width:0.8cm"><col style="width:' + (kiri ? 3.7 : 4.4) + 'cm"><col style="width:' + (kiri ? 2.1 : 2.7) + 'cm"><col style="width:3.45cm"><col></colgroup>' +
+    "<tr><th>No.</th><th>Nama</th><th>Pangkat / Gol.</th><th>NIP</th><th>Jabatan</th></tr>" +
+    S.tim.map(function (t, i) { return "<tr><td>" + (i + 1) + ".</td><td>" + R(ph(t.nama, "nama")) + "</td><td>" + esc(t.pangkat) + '</td><td style="white-space:nowrap">' + esc(t.nip) + "</td><td>" + esc(t.jabatan) + "</td></tr>"; }).join("") + "</table>";
+}
+function NL(items, mark) {
+  return '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse">' + items.map(function (t, i) { return "<tr>" + sel1(mark(i), 0.7) + sel1(R(t), 0, "text-align:justify") + "</tr>"; }).join("") + "</table>";
+}
 function abc(i) { return String.fromCharCode(97 + i) + "."; }
 var PB = '<div class="pb"></div><br clear="all" style="page-break-before:always;mso-break-type:section-break">';
 
@@ -1204,25 +1253,21 @@ function buildST(word) {
   var peranBhp = c.perwalian && c.pengampuan ? "wali pengawas dan pengampu pengawas" : c.pengampuan ? "pengampu pengawas" : "wali pengawas";
   var keg = peny ? "melakukan tindak lanjut " + gabung : "melaksanakan " + judul().toLowerCase().replace(/^pelaksanaan /, "") + (gabung ? " berdasarkan " + gabung : "");
   var td = 'style="vertical-align:top;text-align:justify;padding:0 0 6pt"';
-  function daftarHtml(items, mark) {
-    return '<table style="width:100%">' + items.map(function (t, i) { return '<tr><td style="width:.7cm;vertical-align:top;padding:0 0 4pt">' + mark(i) + "</td><td " + td + ">" + R(t) + "</td></tr>"; }).join("") + "</table>";
-  }
-  function row(label, html) { return '<tr><td style="width:2.6cm;vertical-align:top">' + label + '</td><td style="width:.4cm;vertical-align:top">:</td><td ' + td + ">" + html + "</td></tr>"; }
+  function daftarHtml(items, mark) { return NL(items, mark); }
+  function row(label, html) { return KV(0, [[label, html]], 2.6); }
   h += '<p class="ctr" style="margin:0"><b>SURAT TUGAS</b></p><p class="ctr" style="margin:0">NOMOR: ' + R(ph(S.stNomor, "nomor surat tugas")) + '</p><p class="ctr" style="margin:12pt 0">KEPALA BALAI HARTA PENINGGALAN MEDAN,</p>';
-  h += '<table style="width:100%">' +
-    row("Menimbang", daftarHtml(["Bahwa demi terlaksananya tugas pokok dan fungsi Balai Harta Peninggalan" + (peny ? " sebagai " + peranBhp : "") + ", Balai Harta Peninggalan Medan akan " + keg + ";",
+  h += row("Menimbang", daftarHtml(["Bahwa demi terlaksananya tugas pokok dan fungsi Balai Harta Peninggalan" + (peny ? " sebagai " + peranBhp : "") + ", Balai Harta Peninggalan Medan akan " + keg + ";",
       "Bahwa untuk memerintahkan pegawai dimaksud perlu mengeluarkan Surat Tugas Kepala Balai Harta Peninggalan Medan."], abc)) +
     row("Dasar", daftarHtml(daftar.map(function (d) { return d + ";"; }).concat(["Daftar Isian Pelaksanaan Anggaran Balai Harta Peninggalan Medan Nomor: " + ph(dipa().nomor, "nomor DIPA") + " tanggal " + tgl(dipa().tanggal, "tanggal DIPA") + "."]), function (i) { return (i + 1) + "."; })) +
-    '<tr><td colspan="3" style="text-align:center;padding:6pt 0 10pt"><b>MENUGASKAN:</b></td></tr>' +
+    '<p class="ctr" style="margin:6pt 0 10pt"><b>MENUGASKAN:</b></p>' +
     row("Kepada", "Daftar Nama Pejabat/Pegawai (terlampir)") +
     row("Untuk", daftarHtml([keg.charAt(0).toUpperCase() + keg.slice(1) + " pada hari " + waktuTxt(", tanggal ") + " di " + ph(S.wilayah, "wilayah kegiatan") + ";",
-      "Selama melaksanakan kegiatan tersebut yang bersangkutan dibebastugaskan dari tugas kedinasan sehari-hari;", "Melaporkan hasil kegiatan kepada Kepala Balai Harta Peninggalan Medan;", "Dilaksanakan dengan penuh tanggung jawab."], function (i) { return (i + 1) + "."; })) + "</table>";
+      "Selama melaksanakan kegiatan tersebut yang bersangkutan dibebastugaskan dari tugas kedinasan sehari-hari;", "Melaporkan hasil kegiatan kepada Kepala Balai Harta Peninggalan Medan;", "Dilaksanakan dengan penuh tanggung jawab."], function (i) { return (i + 1) + "."; }));
   h += '<p style="margin-top:8pt">Demikian Surat Tugas ini dikeluarkan untuk dilaksanakan sebagaimana mestinya.</p>' +
     '<table class="ttd"><tr><td></td><td style="text-align:left;padding-left:1.5cm">' + esc(S.kota) + ", " + R(tgl(S.stTanggal, "tanggal surat tugas")) + "<br>Kepala,<br><br><br><br>" + R(ph(S.kepala, "nama Kepala BHP")) + "</td></tr></table>";
   h += PB + '<p style="margin:0;text-align:left"><b>LAMPIRAN</b></p><p style="margin:0;text-align:left">Surat Tugas Kepala Balai Harta Peninggalan Medan</p>' +
-    '<table style="margin-bottom:12pt"><tr><td style="width:2cm">Nomor</td><td>: ' + R(ph(S.stNomor, "nomor surat tugas")) + "</td></tr><tr><td>Tanggal</td><td>: " + R(tgl(S.stTanggal, "tanggal surat tugas")) + "</td></tr></table>" +
-    '<p class="ctr"><b>DAFTAR NAMA PEJABAT/PEGAWAI</b></p><table class="b" style="width:100%"><tr><th>No.</th><th>Nama</th><th>Pangkat / Gol.</th><th>NIP</th><th>Jabatan</th></tr>' +
-    S.tim.map(function (t, i) { return "<tr><td>" + (i + 1) + ".</td><td>" + R(ph(t.nama, "nama")) + "</td><td>" + esc(t.pangkat) + "</td><td>" + esc(t.nip) + "</td><td>" + esc(t.jabatan) + "</td></tr>"; }).join("") + "</table>" +
+    KV(0, [["Nomor", R(ph(S.stNomor, "nomor surat tugas"))], ["Tanggal", R(tgl(S.stTanggal, "tanggal surat tugas"))]], 2) +
+    '<p class="ctr"><b>DAFTAR NAMA PEJABAT/PEGAWAI</b></p>' + tabelPegawai(0) +
     '<table class="ttd"><tr><td></td><td style="text-align:left;padding-left:1.5cm">Kepala,<br><br><br><br>' + R(ph(S.kepala, "nama Kepala BHP")) + "</td></tr></table>";
   return h;
 }
@@ -1252,12 +1297,10 @@ function buildPaper(word) {
   h += Hd(2.25, "a.", "Penanggung Jawab") + P(2.25, "Penanggung jawab kegiatan ini adalah " + R(ph(pj.nama, "nama penanggung jawab")) + (pj.nip.trim() ? " (NIP. " + esc(pj.nip.trim()) + ")" : "") + ", " + R(ph(pj.jabatan, "jabatan")) + " pada Balai Harta Peninggalan Medan.");
   var tp = tempat();
   h += Hd(2.25, "b.", "Tempat Kegiatan") + P(2.25, "Kegiatan ini dilaksanakan pada:") +
-    '<table style="margin-left:2.25cm"><tr><td style="width:3.2cm;vertical-align:top">Hari / Tanggal</td><td style="width:.4cm;vertical-align:top">:</td><td>' + R(waktuTxt(" / ")) + "</td></tr>" +
-    '<tr><td style="vertical-align:top">Tempat</td><td style="vertical-align:top">:</td><td>' + (tp.length === 1 ? R(tp[0]) : tp.length ? "" : R("[isi lokasi pada kronologi]")) + "</td></tr></table>" +
-    (tp.length > 1 ? tp.map(function (s, i) { return LI(3, (i + 1) + ".", s + (i === tp.length - 1 ? "." : i === tp.length - 2 ? "; dan" : ";")); }).join("") : "");
+    KV(2.25, [["Hari / Tanggal", R(waktuTxt(" / "))],
+      ["Tempat", tp.length === 1 ? R(tp[0]) : tp.length ? NL(tp.map(function (s, i) { return s + (i === tp.length - 1 ? "." : i === tp.length - 2 ? "; dan" : ";"); }), function (i) { return (i + 1) + "."; }) : R("[isi lokasi pada kronologi]")]]);
   h += Hd(2.25, "c.", "Pegawai yang Ditunjuk") + P(2.25, "Pegawai yang ditunjuk untuk melaksanakan kegiatan berdasarkan Surat Tugas Nomor: " + R(ph(S.stNomor, "nomor surat tugas")) + " tanggal " + R(tgl(S.stTanggal, "tanggal surat tugas")) + ", di antaranya:") +
-    '<table class="b" style="margin-left:2.25cm;margin-bottom:8pt"><tr><th>No.</th><th>Nama</th><th>Pangkat / Gol.</th><th>NIP</th><th>Jabatan</th></tr>' +
-    S.tim.map(function (t, i) { return "<tr><td>" + (i + 1) + ".</td><td>" + R(ph(t.nama, "nama")) + "</td><td>" + esc(t.pangkat) + "</td><td>" + esc(t.nip) + "</td><td>" + esc(t.jabatan) + "</td></tr>"; }).join("") + "</table>";
+    tabelPegawai(2.25);
   h += Hd(1.5, "4.", "Dasar") + baris(T("dasar")).map(function (s, i) { return LI(2.25, abc(i), s); }).join("");
 
   /* B. Kegiatan */
@@ -1267,7 +1310,7 @@ function buildPaper(word) {
   h += kr.length ? kr.map(function (k) {
     var o = "", w = k.jam ? "Pada pukul " + jam(k.jam) + (k.jam2 ? " hingga " + jam(k.jam2) : "") + " WIB, " : "", g = (k.grup || "").trim();
     if (mh && k.tgl && k.tgl !== lastT) { lastT = k.tgl; lastG = ""; nH++; o += Hd(1.5, nH + ".", hari(k.tgl) + ", " + tgl(k.tgl)); }
-    if (g && g !== lastG) o += P(mh ? 1.5 : 0.75, "<b>" + esc(g) + "</b>", "text-align:left;margin-top:6pt");
+    if (g && g !== lastG) o += P(mh ? 1.5 : 0.75, "<b>" + esc(g) + "</b>", "margin-top:6pt");
     lastG = g;
     return o + LI(mh ? 2.25 : 1.5, "-", w + k.uraian.trim());
   }).join("") : P(0.75, R("[isi kronologi kegiatan]"));
@@ -1276,11 +1319,11 @@ function buildPaper(word) {
   h += Hd(0.75, "C.", "Hasil yang Dicapai") + P(0.75, "Berdasarkan serangkaian kegiatan di atas, hasil yang dicapai oleh Tim adalah sebagai berikut:") + baris(T("hasil")).map(function (s, i) { return LI(1.5, (i + 1) + ".", s); }).join("");
   if (peny && S.penetapan.length > 1) {
     var tot = 0;
-    h += P(0.75, "Rekapitulasi hasil pelaksanaan:") + '<table class="b" style="margin-left:.75cm;margin-bottom:8pt"><tr><th>No.</th><th>Nomor Penetapan</th><th>Wali / Pengampu</th><th>Hasil</th><th>PNBP</th></tr>' +
+    h += P(0.75, "Rekapitulasi hasil pelaksanaan:") + '<table class="b" style="margin-left:.75cm;margin-bottom:8pt;width:' + (LEBAR - 0.75) + 'cm"><colgroup><col style="width:0.8cm"><col style="width:4.1cm"><col style="width:3.3cm"><col><col style="width:2.2cm"></colgroup><tr><th>No.</th><th>Nomor Penetapan</th><th>Wali / Pengampu</th><th>Hasil</th><th>PNBP</th></tr>' +
       S.penetapan.map(function (p, i) {
         var hs = hasilOf(p.hasil), n = hs.pnbp ? angka(p.pnbp) : 0, al = hs.sub ? alasan(p) : ""; tot += n;
-        return "<tr><td>" + (i + 1) + ".</td><td>" + R(ph(p.nomor, "nomor")) + "</td><td>" + R(ph(p.wali, "nama")) + "</td><td>" + esc(hs.singkat) + (al ? ": " + esc(kecil(al)) : "") + '</td><td style="text-align:right;white-space:nowrap">' + (hs.pnbp ? rp(n) : "–") + "</td></tr>";
-      }).join("") + '<tr><td colspan="4" style="text-align:right"><b>Jumlah PNBP</b></td><td style="text-align:right;white-space:nowrap"><b>' + rp(tot) + "</b></td></tr></table>";
+        return "<tr><td>" + (i + 1) + ".</td><td>" + R(ph(p.nomor, "nomor")) + "</td><td>" + R(ph(p.wali, "nama")) + "</td><td>" + esc(hs.singkat) + (al ? ": " + esc(kecil(al)) : "") + '</td><td style="white-space:nowrap">' + (hs.pnbp ? rp(n) : "–") + "</td></tr>";
+      }).join("") + '<tr><td colspan="4"><b>Jumlah PNBP</b></td><td style="white-space:nowrap"><b>' + rp(tot) + "</b></td></tr></table>";
   }
 
   /* D, E */
@@ -1290,7 +1333,7 @@ function buildPaper(word) {
   /* tanda tangan */
   var sp = '<br><br><br>';
   var lain = S.tim.filter(function (_, i) { return i !== (+S.pj < S.tim.length ? +S.pj : 0); });
-  h += '<table class="ttd"><tr><td></td><td style="text-align:left;padding-left:1.5cm">Dibuat di ' + esc(S.kota) + "<br>pada tanggal " + R(tgl(tLap, "tanggal laporan")) + "</td></tr>" +
+  h += '<table class="ttd"><tr><td></td><td style="text-align:left;padding-left:1.5cm"><table style="border-collapse:collapse"><tr>' + sel1("Dibuat di", 2.4) + sel1(":", 0.4) + sel1(esc(S.kota)) + "</tr><tr>" + sel1("pada tanggal") + sel1(":") + sel1(R(tgl(tLap, "tanggal laporan"))) + "</tr></table></td></tr>" +
     "<tr><td><br>" + R(ph(pj.jabatan, "jabatan")) + sp + "<br>" + R(ph(pj.nama, "nama")) + "</td><td>Mengetahui,<br>Kepala Balai Harta Peninggalan Medan" + sp + "<br>" + R(ph(S.kepala, "nama Kepala BHP")) + "</td></tr>" +
     lain.map(function (t) { return "<tr><td>" + sp + "<br>" + R(ph(t.nama, "nama")) + "</td><td></td></tr>"; }).join("") + "</table>";
 
@@ -1322,7 +1365,7 @@ function potongHalaman() {
     if (el.tagName === "BR") return;
     var atas = el.offsetTop, bawah = atas + el.offsetHeight;
     if (awal === null) awal = atas;
-    var judul = el.tagName === "P" && el.firstElementChild && el.firstElementChild.tagName === "B" && el.textContent.trim().length < 90 || el.tagName === "P" && /:\s*$/.test(el.textContent) && el.textContent.trim().length < 140;
+    var judul = el.classList.contains("hd") || el.tagName === "P" && el.firstElementChild && el.firstElementChild.tagName === "B" && el.textContent.trim().length < 90 || el.tagName === "P" && /:\s*$/.test(el.textContent) && el.textContent.trim().length < 140;
     if (bawah - awal > batas && pages[pages.length - 1].length) {
       /* judul bagian jangan tertinggal sendirian di bawah halaman */
       var lalu = pages[pages.length - 1], bawa = [];
@@ -1464,7 +1507,7 @@ document.getElementById("btnNew").onclick = function () {
 document.getElementById("btnWord").onclick = function () {
   if (!bolehCetak()) return;
   var css = "body{font:12pt/1.5 Arial,sans-serif}p{margin:0 0 6pt;text-align:justify}.ctr,.ctr p{text-align:center}.ph{color:#c00000}table{border-collapse:collapse}" +
-    "table.b td,table.b th{border:1px solid #000;padding:3pt 5pt;vertical-align:top;font-size:10pt}table.kop{width:100%;border-bottom:3px double #000}table.kop td{text-align:center;vertical-align:middle}" +
+    "table.b td,table.b th{border:1px solid #000;padding:3pt 4pt;vertical-align:top;font-size:9.5pt;text-align:justify}table.b th{text-align:center;vertical-align:middle}table.kop{width:100%;border-bottom:3px double #000}table.kop td{text-align:center;vertical-align:middle}" +
     "table.ttd{width:100%}table.ttd td{width:50%;text-align:center;vertical-align:top}table.foto{width:100%}table.foto td{width:50%;text-align:center;vertical-align:top;font-size:9pt;padding:4pt}.pb{display:none}" +
     "@page{size:21cm 29.7cm;margin:2cm 2cm 2.5cm 3cm}";
   var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>' + css + "</style></head><body>" + buildPaper(true) + "</body></html>";
